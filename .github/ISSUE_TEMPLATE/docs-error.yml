@@ -1,0 +1,27 @@
+name: Docs error
+description: A mistake or a gap in the README, the docs, the spec or the examples.
+title: "[Docs error] "
+labels: ["docs"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Where
+      description: The file and section, or a link to the line.
+      placeholder: docs/time-fields.md, "computedAt"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing
+      description: Quote the text, and say what is wrong with it. A command that shows the API's actual behavior helps.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested correction
+      description: Optional.
+    validations:
+      required: false

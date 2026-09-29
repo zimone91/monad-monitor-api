@@ -1,0 +1,7 @@
+# No emoji (style rule 2): emoticons, pictographs, symbols and dingbats.
+extends: existence
+message: "Remove the emoji."
+level: error
+nonword: true
+raw:
+  - '[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0F}]'

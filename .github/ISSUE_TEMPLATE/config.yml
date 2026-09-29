@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/zimone91/monad-monitor-api/security/policy
+    about: Report it privately, as the security policy describes. Do not open a public issue for anything exploitable.

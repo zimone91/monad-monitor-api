@@ -1,0 +1,270 @@
+name: CI
+
+# Every check that runs on a pull request lives here; these are the jobs branch
+# protection requires. pages.yml calls this workflow (workflow_call) so that the
+# numbers on the published badges come from a run of these same jobs.
+on:
+  push:
+  pull_request:
+    # labeled/unlabeled: the breaking-change gate in spec-lint reads the labels
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+  workflow_call:
+
+# Least privilege: every job only reads the tree.
+permissions:
+  contents: read
+
+# A superseded push has nothing left to prove: cancel its run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REDOCLY_TELEMETRY: "off"
+  REDOCLY_SUPPRESS_UPDATE_NOTICE: "true"
+
+jobs:
+  spec-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # Every action is pinned to a full commit SHA, with the release in a comment.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the breaking-change gate diffs the pushed or pull request range
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Spectral - spectral:oas recommended and the rules in .spectral.yaml
+        run: spectral lint openapi/openapi.yaml --ruleset .spectral.yaml --fail-severity=warn
+      - name: Redocly - second opinion (recommended-strict)
+        if: ${{ !cancelled() }}
+        run: redocly lint openapi/openapi.yaml
+      # Pull requests and pushes: main moves by fast-forward, so a change may
+      # reach it without a pull request (breaking-change.sh says how each
+      # event is compared).
+      - name: Install oasdiff (pinned + sha256-verified)
+        if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'push') }}
+        run: bash .github/scripts/install-tool.sh oasdiff
+      - name: Breaking changes need an acknowledgement (label or Breaking-Change trailer) and a CHANGELOG entry
+        if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'push') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash .github/scripts/breaking-change.sh
+
+  examples:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      validated: ${{ steps.check.outputs.validated }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Spec examples are valid against their schemas (oas3-valid-media-example at error)
+        id: schema
+        run: spectral lint openapi/openapi.yaml --ruleset .github/scripts/examples.spectral.yaml --fail-severity=error
+      # The count reaches the badge only when both steps pass (badges.py reads
+      # the job result, not only this output).
+      - name: examples/ equal the spec, declare no undocumented field, match the capture table
+        id: check
+        if: ${{ !cancelled() }}
+        run: python3 .github/scripts/check_examples.py --spec "$RUNNER_TEMP/build/openapi.json" --github-output
+
+  docs-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        id: setup
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Install typos (pinned + sha256-verified)
+        id: typos-install
+        run: bash .github/scripts/install-tool.sh typos
+      # The steps below all run, so one red check does not hide the next one.
+      - name: markdownlint-cli2
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: markdownlint-cli2 "**/*.md"
+      - name: typos - tracked files (American English)
+        if: ${{ !cancelled() && steps.typos-install.outcome == 'success' }}
+        run: typos --config _typos.toml
+      - name: typos - the prose of the spec (titles, summaries, descriptions)
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.typos-install.outcome == 'success' }}
+        run: |
+          python3 .github/scripts/oas.py prose "$RUNNER_TEMP/build/openapi.json" > "$RUNNER_TEMP/build/spec-prose.md"
+          typos --config _typos.toml "$RUNNER_TEMP/build/spec-prose.md"
+      - name: no-cyrillic
+        if: ${{ !cancelled() }}
+        run: python3 .github/scripts/check_no_cyrillic.py
+      - name: forbidden-content
+        if: ${{ !cancelled() }}
+        run: python3 .github/scripts/check_forbidden_content.py
+      - name: readme-endpoints - README.md first, then every other tracked Markdown file
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: |
+          git ls-files -z -- '*.md' ':(exclude)README.md' \
+            | xargs -0 python3 .github/scripts/check_readme_endpoints.py --spec "$RUNNER_TEMP/build/openapi.json" README.md
+      - name: Verify it yourself - blocks are well-formed (contract-live runs them)
+        if: ${{ !cancelled() }}
+        run: python3 .github/scripts/check_verify_blocks.py README.md
+
+  style:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Install Vale (pinned + sha256-verified)
+        run: bash .github/scripts/install-tool.sh vale
+      - name: Vale (styles/Zim) - every tracked Markdown file
+        run: git ls-files -z '*.md' | xargs -0 vale --config .vale.ini --no-wrap
+      - name: Vale (styles/Zim) - the prose of the spec (titles, summaries, descriptions)
+        if: ${{ !cancelled() }}
+        run: |
+          python3 .github/scripts/oas.py prose "$RUNNER_TEMP/build/openapi.json" > "$RUNNER_TEMP/build/spec-prose.md"
+          vale --config .vale.ini --no-wrap "$RUNNER_TEMP/build/spec-prose.md"
+
+  links:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Install lychee (pinned + sha256-verified)
+        run: bash .github/scripts/install-tool.sh lychee
+      - name: lychee - the documents and the built page
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/check-links.sh
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # scan the full history, not only the tip
+      - name: Install gitleaks (pinned + sha256-verified)
+        run: bash .github/scripts/install-tool.sh gitleaks
+      # .gitleaks.toml = all default rules + one narrow allowlist for two
+      # shapes of public data in the captured examples (see the file).
+      - name: gitleaks (fail-closed, findings redacted)
+        run: gitleaks git --no-banner --redact --verbose --config .gitleaks.toml .
+
+  actions-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install zizmor, actionlint, shellcheck (pinned + sha256-verified)
+        run: |
+          bash .github/scripts/install-tool.sh zizmor
+          bash .github/scripts/install-tool.sh actionlint
+          bash .github/scripts/install-tool.sh shellcheck
+      # --strict-collection: a workflow zizmor cannot parse fails the step
+      # instead of being skipped with a warning (measured: without it, a broken
+      # workflow file passes with exit 0).
+      - name: zizmor - workflow security audit (online audits use the read-only token)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: zizmor --strict-collection --format plain .github/workflows
+      - name: actionlint - workflow syntax, expressions, and shellcheck on run blocks
+        if: ${{ !cancelled() }}
+        run: actionlint
+
+  authorship:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # every commit of the range must be present
+          # the pull request's own head, not GitHub's synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Every commit is the maintainer's, signed, without Co-authored-by
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: python3 .github/scripts/check_authorship.py --from-event --github-repo "$GITHUB_REPOSITORY"
+
+  badges:
+    needs: [spec-lint, examples, docs-lint, style, links, secrets, actions-security, authorship]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: README badges are live, and every nameFilter names an existing job
+        id: readme
+        continue-on-error: true
+        run: python3 .github/scripts/badges.py verify-readme README.md
+      - name: Write the shields endpoint JSON for this run (no commit; an artifact only)
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          README_OUTCOME: ${{ steps.readme.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 .github/scripts/badges.py write --spec "$RUNNER_TEMP/build/openapi.json" --out "$RUNNER_TEMP/badge-output/badges"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: badges
+          path: ${{ runner.temp }}/badge-output
+          if-no-files-found: error
+          retention-days: 7
+      - name: Fail when the README breaks the badge rules
+        if: ${{ steps.readme.outcome != 'success' }}
+        run: exit 1

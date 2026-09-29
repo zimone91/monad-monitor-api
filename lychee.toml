@@ -1,0 +1,30 @@
+# lychee settings for the `links` job (every push and pull request) and the
+# weekly `links-weekly` job; both run .github/scripts/check-links.sh over the
+# tracked Markdown files and the page built from the spec.
+
+max_redirects = 5
+max_retries = 3
+retry_wait_time = 5
+timeout = 30
+max_concurrency = 8
+accept = ["200..=299"]
+
+# Anchors in links between the documents are checked as well.
+include_fragments = "anchor-only"
+
+# A mailbox cannot be checked without sending mail.
+include_mail = false
+
+# Each exclusion, with the reason it is not checked here:
+exclude = [
+  # The API itself: contract-live checks it request by request against the
+  # spec; lychee would only spend the rate budget.
+  '^https://api\.zim\.one/',
+  # Badge images: the badges job checks every badge source, and these hosts
+  # rate-limit crawlers.
+  '^https://img\.shields\.io/',
+  '^https://api\.scorecard\.dev/',
+  # This repository's Pages site: pages.yml deploys it and then fetches every
+  # published file; before the first deployment the URL does not exist yet.
+  '^https://zimone91\.github\.io/monad-monitor-api/',
+]

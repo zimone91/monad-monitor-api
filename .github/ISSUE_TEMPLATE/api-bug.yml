@@ -1,0 +1,50 @@
+name: API bug
+description: An endpoint answered in a way the documentation says it should not, or did not answer.
+title: "[API bug] "
+labels: ["api", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One request per issue. Remove anything private from the request before you paste it.
+        Security problems go through the security policy, never a public issue.
+  - type: input
+    id: endpoint
+    attributes:
+      label: Endpoint
+      description: Method and path, as in the documentation.
+      placeholder: GET /validator/{id}/score
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Request
+      description: The exact command or URL you sent, with every query parameter.
+      placeholder: curl -s -D - 'https://api.zim.one/v1/validator/109/score'
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: response
+    attributes:
+      label: Response
+      description: The HTTP status, the response headers, and the body. Trim long arrays.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Time (UTC)
+      description: When the request was sent, in ISO 8601 UTC. The `time` field of a JSON response is the server's clock.
+      placeholder: 2026-09-25T09:30:00Z
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What the documentation or the spec says should happen, with a link to the place.
+    validations:
+      required: true

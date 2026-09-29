@@ -1,0 +1,33 @@
+name: Data question
+description: A value in a response looks wrong or unclear.
+title: "[Data question] "
+labels: ["data", "question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, read docs/reading-the-data.md: `null` means not measured, amounts are wei in strings,
+        and every reading carries its own timestamp.
+  - type: input
+    id: field
+    attributes:
+      label: Field
+      description: The endpoint and the path of the field in the response.
+      placeholder: GET /validator/109, income.aprPct
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: Value
+      description: The value you received, the request that returned it, and the `time` of the response (UTC).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What was expected
+      description: The value you expected and why, with the source you compared against.
+    validations:
+      required: true

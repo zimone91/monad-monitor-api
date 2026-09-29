@@ -1,0 +1,7 @@
+# redocly lint: a second opinion on openapi/openapi.yaml after Spectral
+# (.spectral.yaml). recommended-strict is the recommended ruleset with every
+# warning raised to an error, so any finding fails spec-lint. No rule is
+# turned off. (The spec declares `security: []` at the root: the API takes no
+# credentials, which satisfies security-defined.)
+extends:
+  - recommended-strict

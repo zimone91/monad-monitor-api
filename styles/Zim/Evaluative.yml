@@ -1,0 +1,15 @@
+# Evaluative words describe a feeling, not a fact a reader can check.
+extends: existence
+message: "Remove '%s': state what it does or how it was measured instead."
+level: error
+ignorecase: true
+tokens:
+  - seamless(?:ly)?
+  - powerful(?:ly)?
+  - robust(?:ly|ness)?
+  - blazing(?:ly)?
+  - cutting[- ]edge
+  - simply
+  - just
+  - eas(?:y|ily)
+  - effortless(?:ly)?

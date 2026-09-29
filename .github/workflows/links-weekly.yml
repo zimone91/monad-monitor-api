@@ -1,0 +1,41 @@
+name: Links (weekly)
+
+# The links job of ci.yml runs on every push and pull request; this one runs
+# on a schedule, so a page that disappears is found before a reader finds it,
+# even in a week without commits.
+on:
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: links-weekly
+  cancel-in-progress: true
+
+env:
+  REDOCLY_TELEMETRY: "off"
+  REDOCLY_SUPPRESS_UPDATE_NOTICE: "true"
+
+jobs:
+  links-weekly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Install lychee (pinned + sha256-verified)
+        run: bash .github/scripts/install-tool.sh lychee
+      - name: lychee - the documents and the built page
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/check-links.sh

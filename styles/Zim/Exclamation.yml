@@ -1,0 +1,7 @@
+# No exclamation marks in prose. Code spans and code blocks are not prose.
+extends: existence
+message: "Remove the exclamation mark."
+level: error
+nonword: true
+tokens:
+  - '!'

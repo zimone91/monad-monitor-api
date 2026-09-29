@@ -1,0 +1,136 @@
+{
+  "network": "mainnet",
+  "validatorId": "109",
+  "value": 100,
+  "withheld": false,
+  "withheldReason": null,
+  "confidence": "high",
+  "uptimeSource": "crisp",
+  "crispObservations": 7453,
+  "crispLowerBoundPct": 99.9485,
+  "roundCoverage": {
+    "pct": 100,
+    "observedMs": 604787129,
+    "windowMs": 604800000,
+    "coveredEpochs": 40,
+    "gateOpen": true,
+    "reason": "ok"
+  },
+  "percentileSet": 78.46,
+  "percentileCohort": 95,
+  "scoredSetSize": 196,
+  "cohortSize": 111,
+  "computedAt": "2026-09-28T23:57:44.858Z",
+  "vdpCompliant": true,
+  "vdpStatus": "pass",
+  "vdpStatusReason": "all qualified sources ≥ 98% — holds the network bar",
+  "factorsPresent": 4,
+  "configVersion": "v3",
+  "methodVersion": "crisp-point-1",
+  "sourceChangedAt": "2026-08-19T13:44:41Z",
+  "observations7d": 8530,
+  "coverage": {
+    "pct": 100,
+    "observedMs": 604800000,
+    "windowMs": 604800000,
+    "gaps": []
+  },
+  "epochBasis": "approx",
+  "selfObservation": null,
+  "currentState": "live",
+  "longevity": {
+    "firstBlockDay": "2026-06-29"
+  },
+  "breakdown": [
+    {
+      "factor": "reliability",
+      "subScore": 100,
+      "weight": 0.5,
+      "effectiveWeight": 0.5,
+      "contribution": 50,
+      "status": "scored",
+      "reason": "produced 7453 of 7453 assigned slots over 40 full epochs",
+      "detail": {
+        "crisp": true,
+        "method": "crisp-point",
+        "slotSuccessPct": 100,
+        "crispLowerBoundPct": 99.9485,
+        "cappedByWindowed": false,
+        "cappedByIncident": false,
+        "windowedLimb": 100,
+        "assignedSlots": 7453,
+        "producedSlots": 7453,
+        "missedSlots": 0,
+        "coveredEpochs": 40,
+        "state": "live",
+        "zeroStreak": 0,
+        "anomaly": false,
+        "inConsensus": true
+      }
+    },
+    {
+      "factor": "epochParticipation",
+      "subScore": 100,
+      "weight": 0.2222,
+      "effectiveWeight": 0.2222,
+      "contribution": 22.222,
+      "status": "scored",
+      "reason": "produced in 40/40 full epochs",
+      "detail": {
+        "participated": 40,
+        "observed": 40,
+        "lookbackEpochs": 40
+      }
+    },
+    {
+      "factor": "recovery",
+      "subScore": 100,
+      "weight": 0.1667,
+      "effectiveWeight": 0.1667,
+      "contribution": 16.667,
+      "status": "scored",
+      "reason": "clean streak — no incidents · 7d window",
+      "detail": {
+        "incidents": 0,
+        "transientBlips": 0
+      }
+    },
+    {
+      "factor": "rewardConsistency",
+      "subScore": 100,
+      "weight": 0.1111,
+      "effectiveWeight": 0.1111,
+      "contribution": 11.111,
+      "status": "scored",
+      "reason": "reward CV 0.0639 (noise bound 0.1011 = 1.38x the 0.0735 Poisson floor at 5 epochs, excess 0)",
+      "detail": {
+        "cv": 0.0639,
+        "cvExpected": 0.0735,
+        "cvNoiseBound": 0.1011,
+        "noiseFactor": 1.3752,
+        "excessCv": 0,
+        "meanBlocksPerEpoch": 185,
+        "samples": 5
+      }
+    },
+    {
+      "factor": "vdp",
+      "subScore": null,
+      "weight": 0,
+      "effectiveWeight": 0,
+      "contribution": 0,
+      "status": "dropped",
+      "reason": "moved out of the composite — see vdpStatus",
+      "detail": {
+        "vdpCompliant": true,
+        "commissionPct": 9,
+        "vdpThresholdPct": 15,
+        "uptimePct": 100,
+        "uptimeSource": "crisp",
+        "uptimeBarPct": 98,
+        "foundationRatio": "unknown"
+      }
+    }
+  ],
+  "time": "2026-09-29T00:03:50.267Z"
+}

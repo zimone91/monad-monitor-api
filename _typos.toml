@@ -1,0 +1,25 @@
+# typos: spelling checks in American English (style rule 6), with the
+# project's vocabulary accepted as spelled.
+[files]
+extend-exclude = [
+  # captured third-party data: validator names and descriptions, providers
+  "examples/*.json",
+  # generated from the API; it embeds the same third-party data. Its prose
+  # (titles, summaries, descriptions) is checked separately, extracted by
+  # .github/scripts/oas.py
+  "openapi/openapi.yaml",
+  # package names and integrity hashes
+  ".github/scripts/package-lock.json",
+]
+
+[default]
+locale = "en-us"
+
+[default.extend-words]
+# project vocabulary
+monad = "monad"
+mon = "mon"
+wei = "wei"
+zim = "zim"
+# accepted variant spelling (typos would suggest "unparsable")
+unparseable = "unparseable"

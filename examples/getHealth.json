@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "service": "monad-monitor-api",
+  "chains": {
+    "mainnet": 143,
+    "testnet": 10143
+  },
+  "time": "2026-09-29T00:03:59.777Z",
+  "gitSha": "3297b7b",
+  "builtAt": "2026-09-28T23:57:07Z"
+}

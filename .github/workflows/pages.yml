@@ -1,0 +1,179 @@
+name: Pages
+
+# Design. A GitHub Pages deployment replaces the whole site, so every file the
+# site publishes is produced in the run that deploys it. Nothing is carried
+# over from another run and nothing is committed (a bot commit would make a
+# bot a contributor):
+#
+#   checks          calls ci.yml (workflow_call): the same jobs that gate pull
+#                   requests run again here, and its `badges` job leaves the
+#                   `badges` artifact: checks, endpoints, examples, openapi and
+#                   status, computed from those job results and the spec.
+#   contract-live   the live contract against https://api.zim.one/v1: one
+#                   request per documented operation checked against the spec,
+#                   oasdiff between the served /v1/openapi.json and
+#                   openapi/openapi.yaml, and the README "Verify it yourself"
+#                   commands. Leaves the `contract` artifact: contract.json and
+#                   the `contract` badge with the UTC date of the check.
+#   site            builds the one page (Redoc, from openapi/openapi.yaml) and
+#                   assembles it with both artifacts. Redoc's bundle and logo
+#                   are served from the site itself, pinned by sha256, under a
+#                   Content-Security-Policy that names no other host
+#                   (assemble-site.sh, site_page.py). It runs when a check
+#                   failed too, so a red result is published as red; it fails
+#                   when a part is missing, and the previous site stays up with
+#                   its old dates showing.
+#   pages           deploys, then fetches every published file back and checks
+#                   that contract.json is the one this run wrote.
+#
+# Triggers: every push to main (new content), nightly (the badges and the
+# contract date stay current without commits), and by hand.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a running deployment is never canceled.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  REDOCLY_TELEMETRY: "off"
+  REDOCLY_SUPPRESS_UPDATE_NOTICE: "true"
+
+jobs:
+  checks:
+    # zizmor prefers the newer "$/" self-repository form; actionlint 1.7.12, the
+    # latest release, rejects it. For a reusable workflow both forms load the file
+    # from this same commit.
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository]
+    permissions:
+      contents: read
+
+  contract-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - name: Install oasdiff (pinned + sha256-verified)
+        run: bash .github/scripts/install-tool.sh oasdiff
+      - name: One request per documented operation, checked against the spec
+        id: requests
+        continue-on-error: true
+        run: python3 .github/scripts/contract_live.py requests --spec "$RUNNER_TEMP/build/openapi.json" --out "$RUNNER_TEMP/contract"
+      - name: The served /v1/openapi.json equals openapi/openapi.yaml (oasdiff)
+        id: drift
+        continue-on-error: true
+        run: python3 .github/scripts/contract_live.py drift --spec-yaml openapi/openapi.yaml --out "$RUNNER_TEMP/contract"
+      - name: Verify it yourself - run every README block against the live API
+        id: verify
+        continue-on-error: true
+        run: python3 .github/scripts/check_verify_blocks.py README.md --run --json-out "$RUNNER_TEMP/contract/verify-results.json"
+      - name: Write contract.json and the contract badge (result and UTC date)
+        if: ${{ always() }}
+        env:
+          REQUESTS_OUTCOME: ${{ steps.requests.outcome }}
+          DRIFT_OUTCOME: ${{ steps.drift.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          python3 .github/scripts/contract_live.py summarize --out "$RUNNER_TEMP/contract"
+          --live "$REQUESTS_OUTCOME" --drift "$DRIFT_OUTCOME" --verify "$VERIFY_OUTCOME"
+          --verify-json "$RUNNER_TEMP/contract/verify-results.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: contract
+          path: |
+            ${{ runner.temp }}/contract/contract.json
+            ${{ runner.temp }}/contract/badges/contract.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Fail when any part of the contract failed
+        if: ${{ steps.requests.outcome != 'success' || steps.drift.outcome != 'success' || steps.verify.outcome != 'success' }}
+        run: exit 1
+
+  site:
+    needs: [checks, contract-live]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install Spectral, Redocly CLI, markdownlint-cli2 (package-lock.json, sha512-verified)
+        run: bash .github/scripts/setup-npm-tools.sh
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: badges
+          path: ${{ runner.temp }}/parts/checks
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: contract
+          path: ${{ runner.temp }}/parts/contract
+      - name: Build the page and assemble the site
+        run: bash .github/scripts/assemble-site.sh "$RUNNER_TEMP/parts" "$RUNNER_TEMP/site"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/site
+
+  pages:
+    needs: site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      pages: write # deploy to GitHub Pages
+      id-token: write # prove to Pages that the deployment comes from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: The site serves every file this run built
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          base="${PAGE_URL%/}"
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            echo "attempt $attempt of 10"
+            ok=1
+            for f in index.html redoc.standalone.js redoc.standalone.js.LICENSE.txt redoc-logo-mini.svg \
+                     contract.json checks-detail.json badges/checks.json badges/contract.json \
+                     badges/openapi.json badges/status.json badges/endpoints.json badges/examples.json; do
+              curl -fsS -o /dev/null "$base/$f?run=$RUN_ID" || { echo "not served yet: $f"; ok=0; }
+            done
+            served_run="$(curl -fsS "$base/contract.json?run=$RUN_ID" | python3 -c 'import json, sys; print(json.load(sys.stdin).get("run", ""))' || true)"
+            if [ "$served_run" != "$RUN_URL" ]; then
+              echo "contract.json is not this run's yet (serves: ${served_run:-nothing})"
+              ok=0
+            fi
+            if [ "$ok" -eq 1 ]; then
+              echo "every file is served, and contract.json comes from this run"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "the deployed site does not serve what this run built"
+          exit 1

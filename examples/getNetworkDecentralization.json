@@ -1,0 +1,301 @@
+{
+  "basis": {
+    "validators": 196,
+    "totalStakeWei": "15574323864681276543808942121",
+    "geoResolvedValidators": 194,
+    "geoResolvedStakeShare": 0.8534
+  },
+  "axes": {
+    "validator": {
+      "top": [
+        {
+          "key": "97",
+          "validators": 1,
+          "stakeWei": "2225777228956729800113188373",
+          "stakeShare": 0.1429
+        },
+        {
+          "key": "92",
+          "validators": 1,
+          "stakeWei": "363636446086891579884494480",
+          "stakeShare": 0.0233
+        },
+        {
+          "key": "165",
+          "validators": 1,
+          "stakeWei": "308377974925933907286279326",
+          "stakeShare": 0.0198
+        },
+        {
+          "key": "179",
+          "validators": 1,
+          "stakeWei": "251347388886818496133566758",
+          "stakeShare": 0.0161
+        },
+        {
+          "key": "102",
+          "validators": 1,
+          "stakeWei": "239027466536294269077721848",
+          "stakeShare": 0.0153
+        }
+      ],
+      "groups": 196,
+      "hhiStake": 0.0257,
+      "nakamoto33": 19,
+      "nakamoto67": 89,
+      "unknownStakeShare": 0,
+      "unknownValidators": 0,
+      "coverageStakeShare": 1,
+      "thresholdBreaches": [
+        {
+          "key": "97",
+          "stakeShare": 0.1429,
+          "level": 0.1
+        }
+      ]
+    },
+    "country": {
+      "top": [
+        {
+          "key": "US",
+          "validators": 53,
+          "stakeWei": "3532403977282922182186703396",
+          "stakeShare": 0.2268
+        },
+        {
+          "key": "DE",
+          "validators": 30,
+          "stakeWei": "2155579979787192625335642099",
+          "stakeShare": 0.1384
+        },
+        {
+          "key": "SG",
+          "validators": 13,
+          "stakeWei": "815253886270042766944655179",
+          "stakeShare": 0.0523
+        },
+        {
+          "key": "FI",
+          "validators": 11,
+          "stakeWei": "774958650135081825201044946",
+          "stakeShare": 0.0498
+        },
+        {
+          "key": "NL",
+          "validators": 10,
+          "stakeWei": "717969101354259332350660837",
+          "stakeShare": 0.0461
+        }
+      ],
+      "groups": 29,
+      "hhiStake": 0.1178,
+      "nakamoto33": null,
+      "nakamoto67": null,
+      "unknownStakeShare": 0.1466,
+      "unknownValidators": 2,
+      "coverageStakeShare": 0.8534,
+      "thresholdBreaches": [
+        {
+          "key": "US",
+          "stakeShare": 0.2268,
+          "level": 0.15
+        },
+        {
+          "key": "DE",
+          "stakeShare": 0.1384,
+          "level": 0.1
+        }
+      ]
+    },
+    "provider": {
+      "top": [
+        {
+          "key": "TeraSwitch Networks Inc.",
+          "validators": 11,
+          "stakeWei": "3154523364651553660617261248",
+          "stakeShare": 0.2025
+        },
+        {
+          "key": "OVH SAS",
+          "validators": 35,
+          "stakeWei": "2295391661093151873932452087",
+          "stakeShare": 0.1474
+        },
+        {
+          "key": "UAB Cherry Servers",
+          "validators": 28,
+          "stakeWei": "1760394964063828451422301641",
+          "stakeShare": 0.113
+        },
+        {
+          "key": "Hetzner Online GmbH",
+          "validators": 24,
+          "stakeWei": "1645016285919901438877327074",
+          "stakeShare": 0.1056
+        },
+        {
+          "key": "Latitude.sh",
+          "validators": 14,
+          "stakeWei": "778009378391584393053716985",
+          "stakeShare": 0.05
+        }
+      ],
+      "groups": 48,
+      "hhiStake": 0.0951,
+      "nakamoto33": 2,
+      "nakamoto67": 7,
+      "unknownStakeShare": 0.0037,
+      "unknownValidators": 1,
+      "coverageStakeShare": 0.9963,
+      "thresholdBreaches": [
+        {
+          "key": "TeraSwitch Networks Inc.",
+          "stakeShare": 0.2025,
+          "level": 0.15
+        },
+        {
+          "key": "OVH SAS",
+          "stakeShare": 0.1474,
+          "level": 0.1
+        },
+        {
+          "key": "UAB Cherry Servers",
+          "stakeShare": 0.113,
+          "level": 0.1
+        },
+        {
+          "key": "Hetzner Online GmbH",
+          "stakeShare": 0.1056,
+          "level": 0.1
+        }
+      ]
+    },
+    "city": {
+      "top": [
+        {
+          "key": "Helsinki",
+          "validators": 11,
+          "stakeWei": "774958650135081825201044946",
+          "stakeShare": 0.0498
+        },
+        {
+          "key": "Falkenstein",
+          "validators": 10,
+          "stakeWei": "694901424499679688042756413",
+          "stakeShare": 0.0446
+        },
+        {
+          "key": "Chicago",
+          "validators": 10,
+          "stakeWei": "647211731223072765606374117",
+          "stakeShare": 0.0416
+        },
+        {
+          "key": "Frankfurt am Main",
+          "validators": 7,
+          "stakeWei": "608082671478513841159844142",
+          "stakeShare": 0.039
+        },
+        {
+          "key": "Warsaw",
+          "validators": 7,
+          "stakeWei": "433592309276336557401137570",
+          "stakeShare": 0.0278
+        }
+      ],
+      "groups": 50,
+      "hhiStake": 0.0359,
+      "nakamoto33": null,
+      "nakamoto67": null,
+      "unknownStakeShare": 0.3356,
+      "unknownValidators": 48,
+      "coverageStakeShare": 0.6644,
+      "thresholdBreaches": []
+    },
+    "dataCenter": {
+      "top": [
+        {
+          "key": "24940-FI-Helsinki",
+          "validators": 11,
+          "stakeWei": "774958650135081825201044946",
+          "stakeShare": 0.0498
+        },
+        {
+          "key": "24940-DE-Falkenstein",
+          "validators": 10,
+          "stakeWei": "694901424499679688042756413",
+          "stakeShare": 0.0446
+        },
+        {
+          "key": "16276-FR",
+          "validators": 9,
+          "stakeWei": "644148287799178608171109509",
+          "stakeShare": 0.0414,
+          "partial": true
+        },
+        {
+          "key": "204770-US-Chicago",
+          "validators": 9,
+          "stakeWei": "593446862140239664475114124",
+          "stakeShare": 0.0381
+        },
+        {
+          "key": "16276-SG",
+          "validators": 6,
+          "stakeWei": "430348102473054908970716743",
+          "stakeShare": 0.0276,
+          "partial": true
+        }
+      ],
+      "groups": 83,
+      "hhiStake": 0.0226,
+      "nakamoto33": null,
+      "nakamoto67": null,
+      "unknownStakeShare": 0.1466,
+      "unknownValidators": 2,
+      "coverageStakeShare": 0.8534,
+      "thresholdBreaches": []
+    }
+  },
+  "jurisdictions": [
+    {
+      "key": "EU",
+      "validators": 98,
+      "stakeShare": 0.4386
+    },
+    {
+      "key": "North America",
+      "validators": 59,
+      "stakeShare": 0.2502
+    }
+  ],
+  "superminority": {
+    "count": 19,
+    "boundaryStakeWei": "97333195840179944620212086",
+    "memberIds": [
+      "97",
+      "92",
+      "165",
+      "179",
+      "102"
+    ]
+  },
+  "minNakamoto33": {
+    "value": 2,
+    "axis": "provider"
+  },
+  "vdp": {
+    "pass": 0.9964,
+    "fail": 0.0036,
+    "unknown": 0
+  },
+  "caveats": [
+    "IP geolocation places infrastructure, not operators (sentries/proxies possible)",
+    "validator axis is unclustered: multi-node operators and custodial stake count per node id",
+    "dataCenter keys without a resolved city degrade to ASN-country (partial: true)"
+  ],
+  "network": "mainnet",
+  "stakeBasis": "consensus_stake:latest_snapshot",
+  "computedAt": "2026-09-28T23:57:54.750Z",
+  "time": "2026-09-29T00:03:58.195Z"
+}

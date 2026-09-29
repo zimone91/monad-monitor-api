@@ -1,0 +1,19 @@
+{
+  "status": "ok",
+  "network": "mainnet",
+  "cycleSeq": "24387",
+  "finalizedBlock": "108888445",
+  "ageMs": 120133,
+  "okAgeMs": 99167,
+  "freshness": {
+    "snapshotsAgeMs": 120133,
+    "livenessAgeMs": 99260,
+    "blockRewardsAgeMs": 120133
+  },
+  "blockRate": {
+    "blocksPerSec": 3.3101544738754476,
+    "blockTimeMs": 302.1007049345418,
+    "source": "measured"
+  },
+  "time": "2026-09-29T00:04:01.354Z"
+}

@@ -1,0 +1,75 @@
+{
+  "network": "mainnet",
+  "validatorId": "109",
+  "authAddress": "0xc185195FDD1BF2895E6f0614E7040803334c0A21",
+  "secpPubkey": "0x03d5935169535884451d6ad765d501b88c9ddc53f38f47ce714ddf45f90a98de8b",
+  "blsPubkey": "0x8ba611f3b7cbf605e2b4f38f18826506764802dc48cdade636edffda2baf1643f68f41921b22d71a4f1b1187f4faef51",
+  "status": "Active",
+  "stake": "57088763465848693118360484",
+  "commission": "90000000000000000",
+  "snapshot": {
+    "ts": "2026-09-29T00:02:01.217Z",
+    "blockNumber": "108888445"
+  },
+  "liveness": {
+    "state": "live",
+    "anomaly": false,
+    "windowMs": 659326,
+    "zeroStreak": 0,
+    "inConsensus": true,
+    "updatedAt": "2026-09-29T00:02:22.090Z"
+  },
+  "lastProduction": {
+    "blockNumber": "108888365",
+    "ts": "2026-09-29T00:01:37.048Z"
+  },
+  "production": {
+    "produced24h": 1048,
+    "produced7d": 7459
+  },
+  "income": {
+    "unclaimedRewards": "215815689287493884561894",
+    "aprPct": 10.975325564507328,
+    "aprSource": "measured",
+    "operatorCut": {
+      "h24Wei": "1730139255119676106361",
+      "d7Wei": "12309614921807216724188"
+    },
+    "operatorUnclaimedWei": "25377681619489708746762",
+    "commissionReturnOnSelfStakePct": 619.8237566648503
+  },
+  "rankByStake": 78,
+  "votingWeightPct": 0.3665569302517968,
+  "epoch": {
+    "number": "2178",
+    "progressPct": 67.416,
+    "endsAtMs": 1790645119586.6848
+  },
+  "blocksThisEpoch": 116,
+  "epochRank": 110,
+  "epochPace": 0.958,
+  "epochAvgBlocks": 185.6,
+  "rankByBlocks24h": 81,
+  "setSize": 196,
+  "stakeExpectedRatio24h": 1.0025167694599237,
+  "stakeDelta": {
+    "epochWei": "0",
+    "d7Wei": "25148785845377205777103"
+  },
+  "earned": {
+    "h24Wei": "17166240000000000000000",
+    "d7Wei": "122178420000000000000000"
+  },
+  "authBalanceWei": "664501320969129186040",
+  "selfStakeWei": "103555000000000000000000",
+  "meta": {
+    "name": "zim.one",
+    "logoUrl": "/validator/109/logo?network=mainnet",
+    "website": "https://zim.one/",
+    "xHandle": "https://x.com/zimone91",
+    "description": "Engaged in blockchain space since 2015. Professional validator and infrastructure provider."
+  },
+  "geo": null,
+  "superminority": false,
+  "time": "2026-09-29T00:03:48.685Z"
+}

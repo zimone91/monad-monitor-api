@@ -1,0 +1,39 @@
+# gitleaks configuration for the `secrets` job: every default rule, plus one
+# narrow allowlist for public data in the captured API responses.
+#
+# The default `generic-api-key` rule reads four kinds of PUBLIC chain values in
+# examples/*.json (and in openapi/openapi.yaml, which embeds the same bodies)
+# as secrets:
+#
+#   authAddress  "0x" + 40 hex digits — a validator's EVM address;
+#   secpPubkey   "0x" + 66 hex digits — a compressed secp256k1 PUBLIC key;
+#   blsPubkey    "0x" + 96 hex digits — a BLS12-381 PUBLIC key;
+#   key          ASN-COUNTRY[-City], e.g. "24940-FI-Helsinki".
+#
+# All four are published by the validators themselves through the staking
+# precompile and the validator-info registry; none is a credential. The two
+# public keys were missing from this list, and they are the highest-entropy
+# strings in the repository, so the `secrets` job would have failed on the very
+# first push — a red check on the day the repository opened, for two values
+# anyone can read off the chain.
+#
+# The allowlist stays narrow on purpose: a finding is skipped only when ALL of
+# these hold — the rule is generic-api-key, the file is one of those, and the
+# extracted secret matches one of the four shapes EXACTLY (anchored). Any other
+# value, file or rule is still reported. A private key would not match: secp256k1
+# and BLS secrets are 64 hex digits, which no pattern here accepts.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public chain and geolocation data in captured responses"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^(examples/[^/]+\.json|openapi/openapi\.yaml)$''']
+regexTarget = "secret"
+regexes = [
+  '''^0x[0-9a-fA-F]{40}$''',
+  '''^0x[0-9a-fA-F]{66}$''',
+  '''^0x[0-9a-fA-F]{96}$''',
+  '''^[0-9]{1,10}-[A-Z]{2}(-[A-Za-z .'-]+)?$''',
+]

@@ -1,0 +1,43 @@
+{
+  "network": "mainnet",
+  "count": 202,
+  "validators": [
+    {
+      "validatorId": "3",
+      "authAddress": "0xA63dd8Fc7303BDD6cd66A66a49d4171146f89809",
+      "state": "live",
+      "anomaly": false,
+      "windowMs": 300000,
+      "inConsensus": true,
+      "stake": "232860291100498623426346631",
+      "lastProductionBlock": "108888413",
+      "name": "gmonads.com",
+      "logoUrl": "/validator/3/logo?network=mainnet"
+    },
+    {
+      "validatorId": "4",
+      "authAddress": "0xF807da338Eb84E5C688eC4fd3D8dFBc9190Cf0fe",
+      "state": "live",
+      "anomaly": false,
+      "windowMs": 341035,
+      "inConsensus": true,
+      "stake": "110370201226034041447684858",
+      "lastProductionBlock": "108888275",
+      "name": "B-Harvest",
+      "logoUrl": "/validator/4/logo?network=mainnet"
+    },
+    {
+      "validatorId": "5",
+      "authAddress": "0xEd48036f83fA7E7FA3FE37B3D2287D53CaF92438",
+      "state": "live",
+      "anomaly": false,
+      "windowMs": 300000,
+      "inConsensus": true,
+      "stake": "159262191872592695867546488",
+      "lastProductionBlock": "108888427",
+      "name": "Alchemy",
+      "logoUrl": "/validator/5/logo?network=mainnet"
+    }
+  ],
+  "time": "2026-09-29T00:03:46.839Z"
+}

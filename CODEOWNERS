@@ -1,0 +1,4 @@
+# main is protected by a ruleset: every change passes the required checks before it lands,
+# and the owner below is the only person who merges. Pull requests are not accepted
+# (CONTRIBUTING.md), so this file states responsibility rather than review routing.
+* @zimone91

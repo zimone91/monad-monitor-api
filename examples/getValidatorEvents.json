@@ -1,0 +1,73 @@
+{
+  "network": "mainnet",
+  "validatorId": "109",
+  "count": 5,
+  "events": [
+    {
+      "id": "3002",
+      "ts": "2026-09-12T07:07:01.203Z",
+      "fromState": "suspect",
+      "toState": "live",
+      "context": {
+        "anomaly": false,
+        "windowMs": 658711,
+        "infraStall": false,
+        "zeroStreak": 0
+      },
+      "transient": true
+    },
+    {
+      "id": "3001",
+      "ts": "2026-09-12T07:02:01.221Z",
+      "fromState": "live",
+      "toState": "suspect",
+      "context": {
+        "anomaly": false,
+        "windowMs": 658711,
+        "infraStall": false,
+        "zeroStreak": 1
+      },
+      "transient": true
+    },
+    {
+      "id": "3000",
+      "ts": "2026-09-12T05:07:01.223Z",
+      "fromState": "critical",
+      "toState": "live",
+      "context": {
+        "anomaly": false,
+        "windowMs": 662732,
+        "infraStall": false,
+        "zeroStreak": 0
+      },
+      "transient": false
+    },
+    {
+      "id": "2993",
+      "ts": "2026-09-12T01:07:01.208Z",
+      "fromState": "suspect",
+      "toState": "critical",
+      "context": {
+        "anomaly": false,
+        "windowMs": 658132,
+        "infraStall": false,
+        "zeroStreak": 2
+      },
+      "transient": false
+    },
+    {
+      "id": "2992",
+      "ts": "2026-09-12T01:02:01.204Z",
+      "fromState": "live",
+      "toState": "suspect",
+      "context": {
+        "anomaly": false,
+        "windowMs": 657630,
+        "infraStall": false,
+        "zeroStreak": 1
+      },
+      "transient": false
+    }
+  ],
+  "time": "2026-09-29T00:03:56.608Z"
+}

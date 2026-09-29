@@ -1,0 +1,110 @@
+# spec-lint: Spectral's OpenAPI ruleset (the recommended rules) plus the rules
+# of this repository. CI runs it with --fail-severity=warn, so a warning fails
+# the job too. Redocly CLI lints the same file as a second opinion
+# (redocly.yaml).
+extends:
+  - [spectral:oas, recommended]
+
+rules:
+  # Examples are checked against their schemas (the examples job runs the same
+  # two rules on its own: .github/scripts/examples.spectral.yaml).
+  oas3-valid-media-example: error
+  oas3-valid-schema-example: error
+
+  # Every operation can be used from the spec alone.
+  operation-operationId: error
+  operation-description: error
+  operation-tags: error
+  operation-tag-defined: error
+
+  zim-operation-summary:
+    description: Every operation has a summary.
+    severity: error
+    given: "$.paths[*][get,put,post,delete,options,head,patch,trace]"
+    then:
+      field: summary
+      function: truthy
+
+  zim-operation-one-tag:
+    description: Every operation has exactly one tag.
+    severity: error
+    given: "$.paths[*][get,put,post,delete,options,head,patch,trace]"
+    then:
+      field: tags
+      function: length
+      functionOptions:
+        min: 1
+        max: 1
+
+  zim-operation-200:
+    description: Every operation documents its 200 response.
+    severity: error
+    given: "$.paths[*][get,put,post,delete,options,head,patch,trace].responses"
+    then:
+      field: "200"
+      function: truthy
+
+  zim-live-example:
+    description: >-
+      Every JSON 200 response carries the live example captured from the API:
+      summary "Live response, captured <ISO 8601 UTC>", description
+      "<exact command>; <truncation note>", and the body as its value.
+    severity: error
+    given: "$.paths[*][get,put,post,delete,options,head,patch,trace].responses['200'].content['application/json']"
+    then:
+      - field: examples.live.value
+        function: defined
+      - field: examples.live.summary
+        function: pattern
+        functionOptions:
+          match: "^Live response, captured \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+      - field: examples.live.description
+        function: pattern
+        functionOptions:
+          match: "https://api\\.zim\\.one/\\S+.*; \\S.*$"
+
+  zim-servers:
+    description: The one and only server is https://api.zim.one/v1.
+    severity: error
+    given: "$"
+    then:
+      - field: servers
+        function: truthy
+      - field: servers
+        function: schema
+        functionOptions:
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 1
+            items:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  const: https://api.zim.one/v1
+
+  zim-no-server-override:
+    description: No path or operation overrides the server.
+    severity: error
+    given:
+      - "$.paths[*].servers"
+      - "$.paths[*][get,put,post,delete,options,head,patch,trace].servers"
+    then:
+      function: falsy
+
+  # The documented surface is an ALLOWLIST, not a list of things to exclude.
+  # A denylist has to name what it forbids, and naming this API's non-public
+  # routes in a public file is itself the disclosure it was meant to prevent.
+  # This form says only what IS public, and any path that is not on the list —
+  # private, internal or simply new and unreviewed — fails the job.
+  zim-public-paths-only:
+    description: Only the documented public routes appear under paths.
+    message: "{{property}} is not one of the documented public routes"
+    severity: error
+    given: "$.paths"
+    then:
+      field: "@key"
+      function: pattern
+      functionOptions:
+        match: "^/(validators|validator/\\{id\\}(/(score|slots|series|delegators|events|logo))?|network/decentralization|health(/indexer)?)$"

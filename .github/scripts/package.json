@@ -1,0 +1,12 @@
+{
+  "name": "monad-monitor-api-checks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tools the CI checks run, pinned with their whole dependency tree by package-lock.json. Install with: npm ci --ignore-scripts",
+  "license": "MIT",
+  "devDependencies": {
+    "@redocly/cli": "2.54.2",
+    "@stoplight/spectral-cli": "6.16.3",
+    "markdownlint-cli2": "0.23.3"
+  }
+}

@@ -1,0 +1,3287 @@
+# Generated from the document the API serves at https://api.zim.one/v1/openapi.json.
+# Do not edit by hand.
+openapi: "3.1.0"
+info:
+  title: "Monad Monitor API"
+  version: "1.0.0-beta.1"
+  description: "Read-only API for Monad validator data. Every reading carries its own timestamp, and every JSON response carries `time`, the moment it was generated. Beta, no SLA. Independent project, not affiliated with the Monad Foundation."
+  license:
+    name: MIT
+    identifier: MIT
+  contact:
+    name: ZIM.ONE
+    url: "https://github.com/zimone91/monad-monitor-api/issues"
+servers:
+  - url: "https://api.zim.one/v1"
+security: []
+tags:
+  - name: validators
+    description: "The validator list and per-validator readings."
+  - name: network
+    description: "Network-wide readings."
+  - name: health
+    description: "Service liveness and data freshness."
+paths:
+  "/validators":
+    get:
+      operationId: listValidators
+      tags:
+        - validators
+      summary: "List validators"
+      description: "All validators this service tracks on the network, ordered by id, as light summaries (at most 500). Validators that have left the consensus set are listed too: entries carry no `status`, and `inConsensus` is `false` for them. Entries carry no observation time of their own: they come from the latest indexer cycle, whose age `GET /health/indexer` reports; `time` is the response time.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The validator list."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorList"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:46Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validators?network=mainnet'; validators truncated to 3 of 202"
+                  value:
+                    network: mainnet
+                    count: 202
+                    validators:
+                      - validatorId: "3"
+                        authAddress: "0xA63dd8Fc7303BDD6cd66A66a49d4171146f89809"
+                        state: live
+                        anomaly: false
+                        windowMs: 300000
+                        inConsensus: true
+                        stake: "232860291100498623426346631"
+                        lastProductionBlock: "108888413"
+                        name: gmonads.com
+                        logoUrl: "/validator/3/logo?network=mainnet"
+                      - validatorId: "4"
+                        authAddress: "0xF807da338Eb84E5C688eC4fd3D8dFBc9190Cf0fe"
+                        state: live
+                        anomaly: false
+                        windowMs: 341035
+                        inConsensus: true
+                        stake: "110370201226034041447684858"
+                        lastProductionBlock: "108888275"
+                        name: B-Harvest
+                        logoUrl: "/validator/4/logo?network=mainnet"
+                      - validatorId: "5"
+                        authAddress: "0xEd48036f83fA7E7FA3FE37B3D2287D53CaF92438"
+                        state: live
+                        anomaly: false
+                        windowMs: 300000
+                        inConsensus: true
+                        stake: "159262191872592695867546488"
+                        lastProductionBlock: "108888427"
+                        name: Alchemy
+                        logoUrl: "/validator/5/logo?network=mainnet"
+                    time: "2026-09-29T00:03:46.839Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/validator/{id}":
+    get:
+      operationId: getValidator
+      tags:
+        - validators
+      summary: "Get one validator"
+      description: "Identity, stake, commission, liveness verdict, block production, income, ranks, current epoch, registry identity and location of one validator. Each part has its own clock: `snapshot.ts` (stake, commission, unclaimed rewards), `liveness.updatedAt` (verdict), `lastProduction.ts` (last block); `time` is the response time. The assembled view is cached for 60 seconds and served stale while one refresh runs, never more than 5 minutes after it was assembled. 404 when the validator is not tracked on this network.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The validator."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Validator"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:48Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109?network=mainnet'; not truncated"
+                  value:
+                    network: mainnet
+                    validatorId: "109"
+                    authAddress: "0xc185195FDD1BF2895E6f0614E7040803334c0A21"
+                    secpPubkey: "0x03d5935169535884451d6ad765d501b88c9ddc53f38f47ce714ddf45f90a98de8b"
+                    blsPubkey: "0x8ba611f3b7cbf605e2b4f38f18826506764802dc48cdade636edffda2baf1643f68f41921b22d71a4f1b1187f4faef51"
+                    status: Active
+                    stake: "57088763465848693118360484"
+                    commission: "90000000000000000"
+                    snapshot:
+                      ts: "2026-09-29T00:02:01.217Z"
+                      blockNumber: "108888445"
+                    liveness:
+                      state: live
+                      anomaly: false
+                      windowMs: 659326
+                      zeroStreak: 0
+                      inConsensus: true
+                      updatedAt: "2026-09-29T00:02:22.090Z"
+                    lastProduction:
+                      blockNumber: "108888365"
+                      ts: "2026-09-29T00:01:37.048Z"
+                    production:
+                      produced24h: 1048
+                      produced7d: 7459
+                    income:
+                      unclaimedRewards: "215815689287493884561894"
+                      aprPct: 10.975325564507328
+                      aprSource: measured
+                      operatorCut:
+                        h24Wei: "1730139255119676106361"
+                        d7Wei: "12309614921807216724188"
+                      operatorUnclaimedWei: "25377681619489708746762"
+                      commissionReturnOnSelfStakePct: 619.8237566648503
+                    rankByStake: 78
+                    votingWeightPct: 0.3665569302517968
+                    epoch:
+                      number: "2178"
+                      progressPct: 67.416
+                      endsAtMs: 1790645119586.6848
+                    blocksThisEpoch: 116
+                    epochRank: 110
+                    epochPace: 0.958
+                    epochAvgBlocks: 185.6
+                    rankByBlocks24h: 81
+                    setSize: 196
+                    stakeExpectedRatio24h: 1.0025167694599237
+                    stakeDelta:
+                      epochWei: "0"
+                      d7Wei: "25148785845377205777103"
+                    earned:
+                      h24Wei: "17166240000000000000000"
+                      d7Wei: "122178420000000000000000"
+                    authBalanceWei: "664501320969129186040"
+                    selfStakeWei: "103555000000000000000000"
+                    meta:
+                      name: zim.one
+                      logoUrl: "/validator/109/logo?network=mainnet"
+                      website: "https://zim.one/"
+                      xHandle: "https://x.com/zimone91"
+                      description: "Engaged in blockchain space since 2015. Professional validator and infrastructure provider."
+                    geo: null
+                    superminority: false
+                    time: "2026-09-29T00:03:48.685Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/validator/{id}/score":
+    get:
+      operationId: getValidatorScore
+      tags:
+        - validators
+      summary: "Get the reliability score"
+      description: "Reliability score, 0 to 100, over the last 7 days, with confidence, percentiles, coverage and a per-factor breakdown. This is this service's own method, versioned by `configVersion`. Scores are computed for the whole set and cached for up to 10 minutes; `computedAt` is the clock of this reading. 404 when the validator is not in the scored set.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The score."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorScore"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:49Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109/score?network=mainnet'; breakdown truncated to 5 of 6"
+                  value:
+                    network: mainnet
+                    validatorId: "109"
+                    value: 100
+                    withheld: false
+                    withheldReason: null
+                    confidence: high
+                    uptimeSource: crisp
+                    crispObservations: 7453
+                    crispLowerBoundPct: 99.9485
+                    roundCoverage:
+                      pct: 100
+                      observedMs: 604787129
+                      windowMs: 604800000
+                      coveredEpochs: 40
+                      gateOpen: true
+                      reason: ok
+                    percentileSet: 78.46
+                    percentileCohort: 95
+                    scoredSetSize: 196
+                    cohortSize: 111
+                    computedAt: "2026-09-28T23:57:44.858Z"
+                    vdpCompliant: true
+                    vdpStatus: pass
+                    vdpStatusReason: "all qualified sources ≥ 98% — holds the network bar"
+                    factorsPresent: 4
+                    configVersion: v3
+                    methodVersion: crisp-point-1
+                    sourceChangedAt: "2026-08-19T13:44:41Z"
+                    observations7d: 8530
+                    coverage:
+                      pct: 100
+                      observedMs: 604800000
+                      windowMs: 604800000
+                      gaps: []
+                    epochBasis: approx
+                    selfObservation: null
+                    currentState: live
+                    longevity:
+                      firstBlockDay: "2026-06-29"
+                    breakdown:
+                      - factor: reliability
+                        subScore: 100
+                        weight: 0.5
+                        effectiveWeight: 0.5
+                        contribution: 50
+                        status: scored
+                        reason: "produced 7453 of 7453 assigned slots over 40 full epochs"
+                        detail:
+                          crisp: true
+                          method: crisp-point
+                          slotSuccessPct: 100
+                          crispLowerBoundPct: 99.9485
+                          cappedByWindowed: false
+                          cappedByIncident: false
+                          windowedLimb: 100
+                          assignedSlots: 7453
+                          producedSlots: 7453
+                          missedSlots: 0
+                          coveredEpochs: 40
+                          state: live
+                          zeroStreak: 0
+                          anomaly: false
+                          inConsensus: true
+                      - factor: epochParticipation
+                        subScore: 100
+                        weight: 0.2222
+                        effectiveWeight: 0.2222
+                        contribution: 22.222
+                        status: scored
+                        reason: "produced in 40/40 full epochs"
+                        detail:
+                          participated: 40
+                          observed: 40
+                          lookbackEpochs: 40
+                      - factor: recovery
+                        subScore: 100
+                        weight: 0.1667
+                        effectiveWeight: 0.1667
+                        contribution: 16.667
+                        status: scored
+                        reason: "clean streak — no incidents · 7d window"
+                        detail:
+                          incidents: 0
+                          transientBlips: 0
+                      - factor: rewardConsistency
+                        subScore: 100
+                        weight: 0.1111
+                        effectiveWeight: 0.1111
+                        contribution: 11.111
+                        status: scored
+                        reason: "reward CV 0.0639 (noise bound 0.1011 = 1.38x the 0.0735 Poisson floor at 5 epochs, excess 0)"
+                        detail:
+                          cv: 0.0639
+                          cvExpected: 0.0735
+                          cvNoiseBound: 0.1011
+                          noiseFactor: 1.3752
+                          excessCv: 0
+                          meanBlocksPerEpoch: 185
+                          samples: 5
+                      - factor: vdp
+                        subScore: null
+                        weight: 0
+                        effectiveWeight: 0
+                        contribution: 0
+                        status: dropped
+                        reason: "moved out of the composite — see vdpStatus"
+                        detail:
+                          vdpCompliant: true
+                          commissionPct: 9
+                          vdpThresholdPct: 15
+                          uptimePct: 100
+                          uptimeSource: crisp
+                          uptimeBarPct: 98
+                          foundationRatio: unknown
+                    time: "2026-09-29T00:03:50.267Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/validator/{id}/slots":
+    get:
+      operationId: getValidatorSlots
+      tags:
+        - validators
+      summary: "Get the slot ledger"
+      description: "Leader slots assigned to, produced by and missed by one validator, per epoch, newest first, with every missed round. Totals are exact only when `totals.status` is `exact`; `partial` means a lower bound. `observedTo` is the clock of this reading. An empty ledger is a 200 with `totals.status` `empty`; 404 means the validator is not tracked.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+        - name: epochs
+          in: query
+          required: false
+          description: "Number of most recent epochs to return. Default: the epochs covering about 7 days at the measured block rate. Values above 200 are treated as 200; a missing, zero or non-numeric value uses the default."
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: "The slot ledger."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorSlots"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:51Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109/slots?network=mainnet'; buckets truncated to 5 of 40"
+                  value:
+                    network: mainnet
+                    validatorId: "109"
+                    totals:
+                      assigned: 7390
+                      produced: 7390
+                      missed: 0
+                      crispPct: 100
+                      exact: false
+                      status: partial
+                    observedTo: "2026-09-29T00:02:38.056Z"
+                    missedTruncated: false
+                    buckets:
+                      - epoch: "2178"
+                        produced: 117
+                        missed: 0
+                        assigned: 117
+                        fullyObserved: false
+                        firstRound: "108983465"
+                        lastRound: "109016787"
+                        missedRounds: []
+                      - epoch: "2177"
+                        produced: 196
+                        missed: 0
+                        assigned: 196
+                        fullyObserved: true
+                        firstRound: "108933488"
+                        lastRound: "108983029"
+                        missedRounds: []
+                      - epoch: "2176"
+                        produced: 171
+                        missed: 0
+                        assigned: 171
+                        fullyObserved: true
+                        firstRound: "108883234"
+                        lastRound: "108932963"
+                        missedRounds: []
+                      - epoch: "2175"
+                        produced: 185
+                        missed: 0
+                        assigned: 185
+                        fullyObserved: true
+                        firstRound: "108833139"
+                        lastRound: "108882959"
+                        missedRounds: []
+                      - epoch: "2174"
+                        produced: 195
+                        missed: 0
+                        assigned: 195
+                        fullyObserved: true
+                        firstRound: "108783987"
+                        lastRound: "108832627"
+                        missedRounds: []
+                    coverage:
+                      - fromRound: "99922647"
+                        toRound: "109017015"
+                        fromTs: "2026-08-28T04:29:18.119Z"
+                        toTs: "2026-09-29T00:03:32.514Z"
+                    time: "2026-09-29T00:03:51.874Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/validator/{id}/series":
+    get:
+      operationId: getValidatorSeries
+      tags:
+        - validators
+      summary: "Get a production or reward time series"
+      description: "Blocks produced (`metric=production`) or block rewards in wei (`metric=reward`) per hour, UTC day or ISO week, from the block rewards the indexer recorded. There is no separate observation clock: each point is dated by its bucket start `ts`, and data age is reported by `GET /health/indexer`. An unknown validator returns an empty `points` list.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+        - name: metric
+          in: query
+          required: false
+          description: "`production`: blocks produced per bucket. `reward`: block rewards per bucket, wei. Any other value is treated as `production`."
+          schema:
+            type: string
+            enum:
+              - production
+              - reward
+            default: production
+        - name: bucket
+          in: query
+          required: false
+          description: "Bucket size: `1h` hour, `1d` UTC day, `1w` ISO week starting Monday. Any other value is treated as `1d`."
+          schema:
+            type: string
+            enum:
+              - "1h"
+              - "1d"
+              - "1w"
+            default: "1d"
+        - name: from
+          in: query
+          required: false
+          description: "Window start: Unix time in milliseconds (digits only) or an ISO 8601 date-time. Default: `to` minus 24 hours (`1h`), 7 days (`1d`) or 84 days (`1w`). For `1d` and `1w` the window is limited to the 90 days before `to`. Accepted range: 1970-01-01T00:00:00.000Z (`0`) through 9999-12-31T23:59:59.999Z (`253402300799999`). An empty, unparseable or out-of-range value returns 400 (`invalid time`)."
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          description: "Window end, in the same formats and range as `from`. Default: now. An empty, unparseable or out-of-range value returns 400 (`invalid time`)."
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The series."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorSeries"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:52Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109/series?network=mainnet&metric=production&bucket=1d'; points truncated to 5 of 8"
+                  value:
+                    metric: production
+                    bucket: "1d"
+                    from: "2026-09-22T00:03:53.443Z"
+                    to: "2026-09-29T00:03:53.443Z"
+                    points:
+                      - ts: "2026-09-22T00:00:00.000Z"
+                        value: "1066"
+                      - ts: "2026-09-23T00:00:00.000Z"
+                        value: "1038"
+                      - ts: "2026-09-24T00:00:00.000Z"
+                        value: "1097"
+                      - ts: "2026-09-25T00:00:00.000Z"
+                        value: "1061"
+                      - ts: "2026-09-26T00:00:00.000Z"
+                        value: "1098"
+                    time: "2026-09-29T00:03:53.479Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/validator/{id}/delegators":
+    get:
+      operationId: getValidatorDelegators
+      tags:
+        - validators
+      summary: "Get the top delegators"
+      description: "Largest delegator positions of one validator by stake, read from the chain. `fetchedAt` is the clock of this reading: the enumeration is cached for 10 minutes, and an older result is served while a refresh runs. 404 when the validator is not tracked on this network or the chain lists no such validator. 503 with `Retry-After` when there is no list to give yet: the first reading for this validator takes longer than 10 seconds (it keeps running and fills the cache), too many readings are queued, or the chain reads failed.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+        - name: limit
+          in: query
+          required: false
+          description: "Maximum number of positions to return. Values above 50 are treated as 50 and 0 as 1; a non-numeric value uses the default."
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        "200":
+          description: "The top delegators."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorDelegators"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:54Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109/delegators?network=mainnet&limit=2'; not truncated"
+                  value:
+                    network: mainnet
+                    validatorId: "109"
+                    totalDelegators: 21
+                    truncated: false
+                    fetchedAt: "2026-09-28T23:58:07.786Z"
+                    delegators:
+                      - address: "0xAAa10c4d02B1774aFb402890E3d311CF9e726E9A"
+                        stakeWei: "52500000000000000000000000"
+                        isSelf: false
+                      - address: "0x19149465777512E686aD5f6f1294f1e8bE709580"
+                        stakeWei: "1555140000000000000000000"
+                        isSelf: false
+                    time: "2026-09-29T00:03:55.026Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceUnavailable"
+  "/validator/{id}/events":
+    get:
+      operationId: getValidatorEvents
+      tags:
+        - validators
+      summary: "Get liveness events"
+      description: "Changes of this service's liveness verdict for one validator, newest first. Each event's `ts` is its own clock. An unknown validator returns an empty list, not 404.\n\nCache: `public, max-age=60`. Rate class standard: 300 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+        - name: limit
+          in: query
+          required: false
+          description: "Maximum number of events to return. Values above 200 are treated as 200; a missing, zero or non-numeric value uses the default."
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: "The events."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorEvents"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:55Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109/events?network=mainnet&limit=5'; not truncated"
+                  value:
+                    network: mainnet
+                    validatorId: "109"
+                    count: 5
+                    events:
+                      - id: "3002"
+                        ts: "2026-09-12T07:07:01.203Z"
+                        fromState: suspect
+                        toState: live
+                        context:
+                          anomaly: false
+                          windowMs: 658711
+                          infraStall: false
+                          zeroStreak: 0
+                        transient: true
+                      - id: "3001"
+                        ts: "2026-09-12T07:02:01.221Z"
+                        fromState: live
+                        toState: suspect
+                        context:
+                          anomaly: false
+                          windowMs: 658711
+                          infraStall: false
+                          zeroStreak: 1
+                        transient: true
+                      - id: "3000"
+                        ts: "2026-09-12T05:07:01.223Z"
+                        fromState: critical
+                        toState: live
+                        context:
+                          anomaly: false
+                          windowMs: 662732
+                          infraStall: false
+                          zeroStreak: 0
+                        transient: false
+                      - id: "2993"
+                        ts: "2026-09-12T01:07:01.208Z"
+                        fromState: suspect
+                        toState: critical
+                        context:
+                          anomaly: false
+                          windowMs: 658132
+                          infraStall: false
+                          zeroStreak: 2
+                        transient: false
+                      - id: "2992"
+                        ts: "2026-09-12T01:02:01.204Z"
+                        fromState: live
+                        toState: suspect
+                        context:
+                          anomaly: false
+                          windowMs: 657630
+                          infraStall: false
+                          zeroStreak: 1
+                        transient: false
+                    time: "2026-09-29T00:03:56.608Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/validator/{id}/logo":
+    get:
+      operationId: getValidatorLogo
+      tags:
+        - validators
+      summary: "Get the validator logo"
+      description: "The logo listed in the public validator registry, fetched and cached by this service and served from its own origin as PNG, JPEG, GIF or WebP. 404 when the registry lists no logo or it could not be fetched.\n\nCache: `public, max-age=86400`. Rate class logo: 600 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The logo image."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "image/png":
+              schema:
+                type: string
+                format: binary
+            "image/jpeg":
+              schema:
+                type: string
+                format: binary
+            "image/gif":
+              schema:
+                type: string
+                format: binary
+            "image/webp":
+              schema:
+                type: string
+                format: binary
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/network/decentralization":
+    get:
+      operationId: getNetworkDecentralization
+      tags:
+        - network
+      summary: "Get network decentralization"
+      description: "Stake concentration across validators, countries, providers, cities and data centers: Nakamoto coefficients, HHI, unknown shares, jurisdiction blocs, the superminority and the stake split by delegation program verdict. Facts, not a grade. Computed for the whole set and cached for up to 10 minutes; `computedAt` is the clock of this reading. Geolocation: MaxMind GeoLite2.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The decentralization facts."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/NetworkDecentralization"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:57Z"
+                  description: "curl -sS 'https://api.zim.one/v1/network/decentralization?network=mainnet'; axes.validator.top truncated to 5 of 10; axes.country.top truncated to 5 of 10; axes.provider.top truncated to 5 of 10; axes.city.top truncated to 5 of 10; axes.dataCenter.top truncated to 5 of 10; superminority.memberIds truncated to 5 of 19"
+                  value:
+                    basis:
+                      validators: 196
+                      totalStakeWei: "15574323864681276543808942121"
+                      geoResolvedValidators: 194
+                      geoResolvedStakeShare: 0.8534
+                    axes:
+                      validator:
+                        top:
+                          - key: "97"
+                            validators: 1
+                            stakeWei: "2225777228956729800113188373"
+                            stakeShare: 0.1429
+                          - key: "92"
+                            validators: 1
+                            stakeWei: "363636446086891579884494480"
+                            stakeShare: 0.0233
+                          - key: "165"
+                            validators: 1
+                            stakeWei: "308377974925933907286279326"
+                            stakeShare: 0.0198
+                          - key: "179"
+                            validators: 1
+                            stakeWei: "251347388886818496133566758"
+                            stakeShare: 0.0161
+                          - key: "102"
+                            validators: 1
+                            stakeWei: "239027466536294269077721848"
+                            stakeShare: 0.0153
+                        groups: 196
+                        hhiStake: 0.0257
+                        nakamoto33: 19
+                        nakamoto67: 89
+                        unknownStakeShare: 0
+                        unknownValidators: 0
+                        coverageStakeShare: 1
+                        thresholdBreaches:
+                          - key: "97"
+                            stakeShare: 0.1429
+                            level: 0.1
+                      country:
+                        top:
+                          - key: US
+                            validators: 53
+                            stakeWei: "3532403977282922182186703396"
+                            stakeShare: 0.2268
+                          - key: DE
+                            validators: 30
+                            stakeWei: "2155579979787192625335642099"
+                            stakeShare: 0.1384
+                          - key: SG
+                            validators: 13
+                            stakeWei: "815253886270042766944655179"
+                            stakeShare: 0.0523
+                          - key: FI
+                            validators: 11
+                            stakeWei: "774958650135081825201044946"
+                            stakeShare: 0.0498
+                          - key: NL
+                            validators: 10
+                            stakeWei: "717969101354259332350660837"
+                            stakeShare: 0.0461
+                        groups: 29
+                        hhiStake: 0.1178
+                        nakamoto33: null
+                        nakamoto67: null
+                        unknownStakeShare: 0.1466
+                        unknownValidators: 2
+                        coverageStakeShare: 0.8534
+                        thresholdBreaches:
+                          - key: US
+                            stakeShare: 0.2268
+                            level: 0.15
+                          - key: DE
+                            stakeShare: 0.1384
+                            level: 0.1
+                      provider:
+                        top:
+                          - key: "TeraSwitch Networks Inc."
+                            validators: 11
+                            stakeWei: "3154523364651553660617261248"
+                            stakeShare: 0.2025
+                          - key: "OVH SAS"
+                            validators: 35
+                            stakeWei: "2295391661093151873932452087"
+                            stakeShare: 0.1474
+                          - key: "UAB Cherry Servers"
+                            validators: 28
+                            stakeWei: "1760394964063828451422301641"
+                            stakeShare: 0.113
+                          - key: "Hetzner Online GmbH"
+                            validators: 24
+                            stakeWei: "1645016285919901438877327074"
+                            stakeShare: 0.1056
+                          - key: Latitude.sh
+                            validators: 14
+                            stakeWei: "778009378391584393053716985"
+                            stakeShare: 0.05
+                        groups: 48
+                        hhiStake: 0.0951
+                        nakamoto33: 2
+                        nakamoto67: 7
+                        unknownStakeShare: 0.0037
+                        unknownValidators: 1
+                        coverageStakeShare: 0.9963
+                        thresholdBreaches:
+                          - key: "TeraSwitch Networks Inc."
+                            stakeShare: 0.2025
+                            level: 0.15
+                          - key: "OVH SAS"
+                            stakeShare: 0.1474
+                            level: 0.1
+                          - key: "UAB Cherry Servers"
+                            stakeShare: 0.113
+                            level: 0.1
+                          - key: "Hetzner Online GmbH"
+                            stakeShare: 0.1056
+                            level: 0.1
+                      city:
+                        top:
+                          - key: Helsinki
+                            validators: 11
+                            stakeWei: "774958650135081825201044946"
+                            stakeShare: 0.0498
+                          - key: Falkenstein
+                            validators: 10
+                            stakeWei: "694901424499679688042756413"
+                            stakeShare: 0.0446
+                          - key: Chicago
+                            validators: 10
+                            stakeWei: "647211731223072765606374117"
+                            stakeShare: 0.0416
+                          - key: "Frankfurt am Main"
+                            validators: 7
+                            stakeWei: "608082671478513841159844142"
+                            stakeShare: 0.039
+                          - key: Warsaw
+                            validators: 7
+                            stakeWei: "433592309276336557401137570"
+                            stakeShare: 0.0278
+                        groups: 50
+                        hhiStake: 0.0359
+                        nakamoto33: null
+                        nakamoto67: null
+                        unknownStakeShare: 0.3356
+                        unknownValidators: 48
+                        coverageStakeShare: 0.6644
+                        thresholdBreaches: []
+                      dataCenter:
+                        top:
+                          - key: "24940-FI-Helsinki"
+                            validators: 11
+                            stakeWei: "774958650135081825201044946"
+                            stakeShare: 0.0498
+                          - key: "24940-DE-Falkenstein"
+                            validators: 10
+                            stakeWei: "694901424499679688042756413"
+                            stakeShare: 0.0446
+                          - key: "16276-FR"
+                            validators: 9
+                            stakeWei: "644148287799178608171109509"
+                            stakeShare: 0.0414
+                            partial: true
+                          - key: "204770-US-Chicago"
+                            validators: 9
+                            stakeWei: "593446862140239664475114124"
+                            stakeShare: 0.0381
+                          - key: "16276-SG"
+                            validators: 6
+                            stakeWei: "430348102473054908970716743"
+                            stakeShare: 0.0276
+                            partial: true
+                        groups: 83
+                        hhiStake: 0.0226
+                        nakamoto33: null
+                        nakamoto67: null
+                        unknownStakeShare: 0.1466
+                        unknownValidators: 2
+                        coverageStakeShare: 0.8534
+                        thresholdBreaches: []
+                    jurisdictions:
+                      - key: EU
+                        validators: 98
+                        stakeShare: 0.4386
+                      - key: "North America"
+                        validators: 59
+                        stakeShare: 0.2502
+                    superminority:
+                      count: 19
+                      boundaryStakeWei: "97333195840179944620212086"
+                      memberIds:
+                        - "97"
+                        - "92"
+                        - "165"
+                        - "179"
+                        - "102"
+                    minNakamoto33:
+                      value: 2
+                      axis: provider
+                    vdp:
+                      pass: 0.9964
+                      fail: 0.0036
+                      unknown: 0
+                    caveats:
+                      - "IP geolocation places infrastructure, not operators (sentries/proxies possible)"
+                      - "validator axis is unclustered: multi-node operators and custodial stake count per node id"
+                      - "dataCenter keys without a resolved city degrade to ASN-country (partial: true)"
+                    network: mainnet
+                    stakeBasis: "consensus_stake:latest_snapshot"
+                    computedAt: "2026-09-28T23:57:54.750Z"
+                    time: "2026-09-29T00:03:58.195Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/health":
+    get:
+      operationId: getHealth
+      tags:
+        - health
+      summary: "Service liveness"
+      description: "Answers `ok` whenever the API process is running, with build provenance (`gitSha`, `builtAt`). It says nothing about data freshness; `GET /health/indexer` does. `time` is the response time.\n\nCache: `no-store`. Rate class standard: 300 requests per minute."
+      responses:
+        "200":
+          description: "The process is running."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Health"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:03:59Z"
+                  description: "curl -sS 'https://api.zim.one/v1/health'; not truncated"
+                  value:
+                    status: ok
+                    service: monad-monitor-api
+                    chains:
+                      mainnet: 143
+                      testnet: 10143
+                    time: "2026-09-29T00:03:59.777Z"
+                    gitSha: "3297b7b"
+                    builtAt: "2026-09-28T23:57:07Z"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/health/indexer":
+    get:
+      operationId: getIndexerHealth
+      tags:
+        - health
+      summary: "Data freshness"
+      description: "Freshness verdict of the indexer that feeds every reading: `ok`, `degraded` or `down`, with ages in milliseconds measured at `time`. The verdict is in the body with HTTP 200, also when degraded or down.\n\nCache: `no-store`. Rate class standard: 300 requests per minute."
+      responses:
+        "200":
+          description: "The freshness verdict."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/IndexerHealth"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-09-29T00:04:00Z"
+                  description: "curl -sS 'https://api.zim.one/v1/health/indexer'; not truncated"
+                  value:
+                    status: ok
+                    network: mainnet
+                    cycleSeq: "24387"
+                    finalizedBlock: "108888445"
+                    ageMs: 120133
+                    okAgeMs: 99167
+                    freshness:
+                      snapshotsAgeMs: 120133
+                      livenessAgeMs: 99260
+                      blockRewardsAgeMs: 120133
+                    blockRate:
+                      blocksPerSec: 3.3101544738754476
+                      blockTimeMs: 302.1007049345418
+                      source: measured
+                    time: "2026-09-29T00:04:01.354Z"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+components:
+  schemas:
+    ResponseTime:
+      type: string
+      description: "When this response was generated (server clock, ISO 8601, UTC). This is not an observation time: each reading carries its own clock."
+      format: date-time
+    NetworkName:
+      type: string
+      description: "Network of this reading. `mainnet` is the only network served; see the `network` parameter."
+      enum:
+        - mainnet
+    LivenessState:
+      type: string
+      description: "This service's liveness verdict, judged every indexer cycle from block production: `live` produced at least one block in its window; `suspect` one window without a block; `critical` two or more consecutive windows without a block; `stale` not in the consensus set; `warming` first cycle after appearing or after visibility returned, not yet judged; `unknown` visibility lost (reads failed), no verdict."
+      enum:
+        - warming
+        - live
+        - suspect
+        - critical
+        - stale
+        - unknown
+    Error:
+      type: object
+      description: "Error body of a 400 response."
+      required:
+        - error
+        - time
+      properties:
+        error:
+          type: string
+          description: "Reason: `invalid validator id`, `invalid network`, `unsupported network` or `invalid time`."
+        param:
+          type: string
+          description: "With `invalid time` only: the parameter that was not a usable time."
+          enum:
+            - from
+            - to
+        network:
+          type: string
+          description: "With `unsupported network` only: the network that was asked for (`testnet`)."
+        supported:
+          type: array
+          items:
+            "$ref": "#/components/schemas/NetworkName"
+          description: "With `unsupported network` only: the networks this API serves."
+        statusCode:
+          type: integer
+          description: "Present only when the request was rejected before reaching the route."
+        message:
+          type: string
+          description: "Present only when the request was rejected before reaching the route: what was wrong with it."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    NotFoundError:
+      type: object
+      description: "Error body of a 404 response. Validator routes name the reason in `error`; most also echo `network` and `validatorId`. An unknown route answers with `message`, `error` and `statusCode`."
+      required:
+        - error
+        - time
+      properties:
+        error:
+          type: string
+          description: "Reason: `validator not found`, `unknown validator` (slot ledger), `no logo`, or `Not Found` (unknown route)."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of the request (validator routes)."
+        validatorId:
+          type: string
+          description: "Requested validator id (validator routes)."
+          pattern: "^[0-9]+$"
+        message:
+          type: string
+          description: "Unknown route only: the method and path that were not found."
+        statusCode:
+          type: integer
+          description: "Unknown route only."
+          const: 404
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    RateLimitError:
+      type: object
+      description: "Error body of a 429 response."
+      required:
+        - error
+        - limitClass
+        - retryAfterSec
+        - time
+      properties:
+        error:
+          type: string
+          description: "Always `rate limit exceeded`."
+          const: "rate limit exceeded"
+        limitClass:
+          type: string
+          description: "Rate class whose budget was exceeded."
+          enum:
+            - heavy
+            - standard
+            - logo
+        retryAfterSec:
+          type: integer
+          description: "Seconds to wait before retrying; the same value as the `Retry-After` header."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    InternalServerError:
+      type: object
+      description: "Error body of a 500 response. It carries no internal detail."
+      required:
+        - statusCode
+        - error
+        - message
+        - errorId
+        - time
+      properties:
+        statusCode:
+          type: integer
+          description: "Always 500."
+          const: 500
+        error:
+          type: string
+          description: "Always `Internal Server Error`."
+          const: "Internal Server Error"
+        message:
+          type: string
+          description: "Always `internal error`."
+          const: "internal error"
+        errorId:
+          type: string
+          description: "Identifier of this error, 16 lowercase hexadecimal characters. Quote it when reporting a problem."
+          pattern: "^[0-9a-f]{16}$"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    ValidatorList:
+      type: object
+      description: "Validators this service tracks on one network."
+      required:
+        - network
+        - count
+        - validators
+        - time
+      properties:
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this list."
+        count:
+          type: integer
+          description: "Number of entries in `validators`."
+        validators:
+          type: array
+          description: "Tracked validators ordered by id, at most 500."
+          items:
+            "$ref": "#/components/schemas/ValidatorSummary"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    ValidatorSummary:
+      type: object
+      description: "Light summary of one validator."
+      required:
+        - validatorId
+        - authAddress
+        - state
+        - anomaly
+        - windowMs
+        - inConsensus
+        - stake
+        - lastProductionBlock
+        - name
+        - logoUrl
+      properties:
+        validatorId:
+          type: string
+          description: "Validator id, decimal string."
+          pattern: "^[0-9]+$"
+        authAddress:
+          type: string
+          description: "Auth address of the validator, 0x-prefixed hex."
+          pattern: "^0x[0-9a-fA-F]{40}$"
+        state:
+          oneOf:
+            - "$ref": "#/components/schemas/LivenessState"
+            - type: "null"
+          description: "Current liveness verdict; null when this service has none yet."
+        anomaly:
+          type:
+            - boolean
+            - "null"
+          description: "Liveness `anomaly` flag, as in `GET /validator/{id}`; null without a verdict."
+        windowMs:
+          type:
+            - integer
+            - "null"
+          description: "Production window behind the verdict, ms, as in `GET /validator/{id}`; null without a verdict."
+        inConsensus:
+          type:
+            - boolean
+            - "null"
+          description: "False only when the validator is not in the consensus set; null without a verdict."
+        stake:
+          type:
+            - string
+            - "null"
+          description: "Consensus stake from the latest snapshot, wei as a decimal integer string; null without a snapshot."
+          pattern: "^[0-9]+$"
+        lastProductionBlock:
+          type:
+            - string
+            - "null"
+          description: "Last block this validator produced, as recorded by the indexer, decimal string; null when none."
+          pattern: "^[0-9]+$"
+        name:
+          type:
+            - string
+            - "null"
+          description: "Display name from the public validator registry; null when not listed."
+        logoUrl:
+          type:
+            - string
+            - "null"
+          description: "Path of this validator's logo on the API host, relative and without the `/v1` prefix, for example `/validator/109/logo?network=mainnet`; the same image is served at `/v1/validator/{id}/logo`. null when the registry lists no logo. A non-null value does not guarantee an image: the logo route answers 404 when the logo could not be fetched."
+    Validator:
+      type: object
+      description: "One validator: identity, stake, liveness, production, income, ranks, epoch, registry identity and location."
+      required:
+        - network
+        - validatorId
+        - authAddress
+        - secpPubkey
+        - blsPubkey
+        - status
+        - stake
+        - commission
+        - snapshot
+        - liveness
+        - lastProduction
+        - production
+        - income
+        - rankByStake
+        - votingWeightPct
+        - epoch
+        - blocksThisEpoch
+        - epochRank
+        - epochPace
+        - epochAvgBlocks
+        - rankByBlocks24h
+        - setSize
+        - stakeExpectedRatio24h
+        - stakeDelta
+        - earned
+        - authBalanceWei
+        - selfStakeWei
+        - meta
+        - geo
+        - time
+      properties:
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this reading."
+        validatorId:
+          type: string
+          description: "Validator id, decimal string."
+          pattern: "^[0-9]+$"
+        authAddress:
+          type: string
+          description: "Auth address of the validator, 0x-prefixed hex."
+          pattern: "^0x[0-9a-fA-F]{40}$"
+        secpPubkey:
+          type:
+            - string
+            - "null"
+          description: "secp256k1 public key, 0x-prefixed hex; null when not stored."
+        blsPubkey:
+          type:
+            - string
+            - "null"
+          description: "BLS public key, 0x-prefixed hex; null when not stored."
+        status:
+          type:
+            - string
+            - "null"
+          description: "Whether the validator is in the live consensus set, and if so how its stake compares with the 10,000,000 MON active threshold. `NotInSet`: the indexer no longer holds it in the consensus set (it was dropped from the validator set) — its `stake`, `commission` and `snapshot` are then the last values ever recorded for it, not current ones. `Active`: in the set with at least 10,000,000 MON of consensus stake. `StakeTooLow`: in the set, below that. null when this service cannot tell: the newest snapshot cycle is too old to say what the set is, or there is no stake reading for the validator yet."
+          enum:
+            - Active
+            - StakeTooLow
+            - NotInSet
+            - null
+        stake:
+          type:
+            - string
+            - "null"
+          description: "Consensus (active-epoch) stake from the latest snapshot, wei as a decimal integer string; null without a snapshot."
+          pattern: "^[0-9]+$"
+        commission:
+          type:
+            - string
+            - "null"
+          description: "Consensus commission from the latest snapshot as a wei-scaled fraction: `1000000000000000000` is 100%, `90000000000000000` is 9%. null without a snapshot."
+          pattern: "^[0-9]+$"
+        snapshot:
+          type:
+            - object
+            - "null"
+          description: "Latest indexer snapshot of this validator: the clock of `stake`, `commission` and `income.unclaimedRewards`. null when none exists."
+          required:
+            - ts
+            - blockNumber
+          properties:
+            ts:
+              type: string
+              description: "When the indexer took the snapshot (UTC)."
+              format: date-time
+            blockNumber:
+              type: string
+              description: "Finalized block the snapshot was read at, decimal string."
+              pattern: "^[0-9]+$"
+        liveness:
+          oneOf:
+            - "$ref": "#/components/schemas/ValidatorLiveness"
+            - type: "null"
+          description: "Current liveness verdict; null when this service has none yet."
+        lastProduction:
+          type:
+            - object
+            - "null"
+          description: "Last block this validator produced, as recorded by the indexer; null when none."
+          required:
+            - blockNumber
+            - ts
+          properties:
+            blockNumber:
+              type: string
+              description: "Block number, decimal string."
+              pattern: "^[0-9]+$"
+            ts:
+              type: string
+              description: "Approximate block time (UTC), derived by the indexer from the finalized head and the measured block rate; not the on-chain block timestamp."
+              format: date-time
+        production:
+          type: object
+          description: "Blocks produced, counted from the block rewards the indexer recorded, by their approximate block time. Counts, not a success rate."
+          required:
+            - produced24h
+            - produced7d
+          properties:
+            produced24h:
+              type: integer
+              description: "Blocks produced in the last 24 hours."
+            produced7d:
+              type: integer
+              description: "Blocks produced in the last 7 days."
+        income:
+          allOf:
+            - "$ref": "#/components/schemas/ValidatorIncome"
+          description: "Staker APR and operator income."
+        rankByStake:
+          type:
+            - integer
+            - "null"
+          description: "Rank by consensus stake within the live consensus set, 1 = highest. null when `status` is `NotInSet`: a validator outside the set is not ranked against it."
+        votingWeightPct:
+          type:
+            - number
+            - "null"
+          description: "Share of the live consensus set's total stake, percent. null when `status` is `NotInSet`."
+        epoch:
+          type:
+            - object
+            - "null"
+          description: "Current epoch, read from the chain; null when the chain read is unavailable."
+          required:
+            - number
+            - progressPct
+            - endsAtMs
+          properties:
+            number:
+              type: string
+              description: "Epoch number, decimal string."
+              pattern: "^[0-9]+$"
+            progressPct:
+              type: number
+              description: "Blocks since the epoch's first block as a percent of 50,000 blocks, capped at 100."
+            endsAtMs:
+              type: number
+              description: "Projected end of the epoch, Unix time in milliseconds (can have a fractional part), from the remaining blocks at the measured block rate."
+        blocksThisEpoch:
+          type:
+            - integer
+            - "null"
+          description: "Blocks produced since the current epoch's first block; null without an epoch reading."
+        epochRank:
+          type:
+            - integer
+            - "null"
+          description: "Competition rank by blocks produced this epoch within the current consensus set, 1 = most; null outside the set or without an epoch reading."
+        epochPace:
+          type:
+            - number
+            - "null"
+          description: "Blocks produced this epoch divided by the stake-proportional expectation (1.0 = on pace), 3 decimals; null before 5% of the epoch has passed, without stake, or without an epoch reading."
+        epochAvgBlocks:
+          type:
+            - number
+            - "null"
+          description: "Average blocks produced per full past epoch within the indexed history, at most five epochs. null when no full epoch is covered yet, and when `status` is `NotInSet`."
+        rankByBlocks24h:
+          type:
+            - integer
+            - "null"
+          description: "Competition rank by blocks produced in the last 24 hours within the current consensus set, 1 = most; null when not in the set."
+        setSize:
+          type:
+            - integer
+            - "null"
+          description: "Validators in the most recent snapshot cycle — the live consensus set, and the population `rankByStake`, `votingWeightPct` and `rankByBlocks24h` are computed over."
+        stakeExpectedRatio24h:
+          type:
+            - number
+            - "null"
+          description: "Blocks produced in 24 hours divided by the stake-expected count (`votingWeightPct` of the network's 24-hour blocks). 1.0 = exactly the stake-expected rate. null when the expected count is unavailable, and when `status` is `NotInSet`."
+        stakeDelta:
+          type:
+            - object
+            - "null"
+          description: "Change in consensus stake since the start of the current epoch and over the last 7 days, wei as decimal integer strings. null without the extras, and when `status` is `NotInSet` — a departed validator is never snapshotted again, so both ends of the difference would be the same stale row."
+          required:
+            - epochWei
+            - d7Wei
+          properties:
+            epochWei:
+              type:
+                - string
+                - "null"
+              description: "Change since the current epoch started; null without a baseline snapshot."
+              pattern: "^-?[0-9]+$"
+            d7Wei:
+              type:
+                - string
+                - "null"
+              description: "Change over the last 7 days; null without a baseline snapshot."
+              pattern: "^-?[0-9]+$"
+        earned:
+          type:
+            - object
+            - "null"
+          description: "Block rewards paid into this validator's stakers' pool, net of commission (what all stakers share), wei as decimal integer strings."
+          required:
+            - h24Wei
+            - d7Wei
+          properties:
+            h24Wei:
+              type: string
+              description: "Last 24 hours."
+              pattern: "^[0-9]+$"
+            d7Wei:
+              type: string
+              description: "Last 7 days."
+              pattern: "^[0-9]+$"
+        authBalanceWei:
+          type:
+            - string
+            - "null"
+          description: "Native balance of the auth address, wei as a decimal integer string; null when the chain read is unavailable."
+          pattern: "^[0-9]+$"
+        selfStakeWei:
+          type:
+            - string
+            - "null"
+          description: "The operator's own stake (the auth address's delegator position), wei as a decimal integer string; `0` when there is none; null when the chain read is unavailable."
+          pattern: "^[0-9]+$"
+        meta:
+          oneOf:
+            - "$ref": "#/components/schemas/ValidatorMeta"
+            - type: "null"
+          description: "Identity from the public validator registry; null when the validator is not listed."
+        geo:
+          oneOf:
+            - "$ref": "#/components/schemas/ValidatorGeo"
+            - type: "null"
+          description: "Location of the validator's node, derived from its network address with MaxMind GeoLite2; the address itself is never published. null when no location is stored."
+        superminority:
+          type: boolean
+          description: "True when this validator belongs to the superminority: the smallest set of largest-stake validators that together hold more than 1/3 of the stake (see `GET /network/decentralization`). Absent when that computation is unavailable."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    ValidatorLiveness:
+      type: object
+      description: "This service's liveness verdict for one validator."
+      required:
+        - state
+        - anomaly
+        - windowMs
+        - zeroStreak
+        - inConsensus
+        - updatedAt
+      properties:
+        state:
+          "$ref": "#/components/schemas/LivenessState"
+        anomaly:
+          type: boolean
+          description: "True when the verdict could not be confirmed as the validator's own state: a read failure was held, or the indexer had not read the whole production window."
+        windowMs:
+          type: integer
+          description: "Production window behind the verdict, ms, sized so the validator expects 8 blocks in it at its stake share (at most 90 minutes)."
+        zeroStreak:
+          type: integer
+          description: "Consecutive windows without a produced block; 0 when `live`."
+        inConsensus:
+          type: boolean
+          description: "False only when the validator is not in the consensus set (`stale`)."
+        updatedAt:
+          type: string
+          description: "When the verdict was last written (UTC); the clock of this object."
+          format: date-time
+    ValidatorIncome:
+      type: object
+      description: "Staker APR and operator income."
+      required:
+        - unclaimedRewards
+        - aprPct
+        - aprSource
+        - operatorCut
+        - operatorUnclaimedWei
+        - commissionReturnOnSelfStakePct
+      properties:
+        unclaimedRewards:
+          type:
+            - string
+            - "null"
+          description: "Unclaimed rewards of the stakers' pool from the latest snapshot (all stakers, net of commission), wei as a decimal integer string; not the operator's own claimable amount (see `operatorUnclaimedWei`). null without a snapshot."
+          pattern: "^[0-9]+$"
+        aprPct:
+          type:
+            - number
+            - "null"
+          description: "Staker APR, percent; how it was computed is in `aprSource`. null when stake is missing or zero, and when `status` is `NotInSet` — a validator out of the set earns nothing and its stake is a stale reading, so neither formula measures anything."
+        aprSource:
+          type:
+            - string
+            - "null"
+          description: "`measured`: annualized from the block rewards of the last 24 hours over stake. `nominal`: estimated from the 24-hour block count, the current per-block reward and commission; used when data does not fully cover the last 24 hours. null together with `aprPct` when `status` is `NotInSet`."
+          enum:
+            - measured
+            - nominal
+            - null
+        operatorCut:
+          type:
+            - object
+            - "null"
+          description: "Operator income estimate (commission plus the self-stake share of rewards), wei as decimal integer strings; null when the operator position cannot be read."
+          required:
+            - h24Wei
+            - d7Wei
+          properties:
+            h24Wei:
+              type:
+                - string
+                - "null"
+              description: "Last 24 hours; null when the window edge has no snapshot or data does not fully cover the window."
+              pattern: "^[0-9]+$"
+            d7Wei:
+              type:
+                - string
+                - "null"
+              description: "Last 7 days; null when the window edge has no snapshot."
+              pattern: "^[0-9]+$"
+        operatorUnclaimedWei:
+          type:
+            - string
+            - "null"
+          description: "The operator's own claimable rewards (the auth address's delegator position), wei as a decimal integer string; null when unavailable."
+          pattern: "^[0-9]+$"
+        commissionReturnOnSelfStakePct:
+          type:
+            - number
+            - "null"
+          description: "The 7-day operator income annualized and divided by the operator's own stake, percent. The income is mostly commission on other delegators' stake, so this is not a yield and is not comparable with `aprPct`. null when unavailable."
+    ValidatorMeta:
+      type: object
+      description: "Identity from the public validator registry."
+      required:
+        - name
+        - logoUrl
+        - website
+        - xHandle
+        - description
+      properties:
+        name:
+          type: string
+          description: "Display name."
+        logoUrl:
+          type:
+            - string
+            - "null"
+          description: "Path of this validator's logo on the API host, relative and without the `/v1` prefix, for example `/validator/109/logo?network=mainnet`; the same image is served at `/v1/validator/{id}/logo`. null when the registry lists no logo. A non-null value does not guarantee an image: the logo route answers 404 when the logo could not be fetched."
+        website:
+          type:
+            - string
+            - "null"
+          description: "Website as listed in the registry; null when not listed."
+        xHandle:
+          type:
+            - string
+            - "null"
+          description: "X account as listed in the registry, as a handle or a URL; null when not listed."
+        description:
+          type:
+            - string
+            - "null"
+          description: "Description as listed in the registry; null when not listed."
+    ValidatorGeo:
+      type: object
+      description: "Location of a validator's node (MaxMind GeoLite2). Derived facts only."
+      required:
+        - city
+        - country
+        - continent
+        - asn
+        - provider
+        - source
+        - updatedAt
+        - disputed
+        - concentration
+      properties:
+        city:
+          type:
+            - string
+            - "null"
+          description: "City name in English; null when unknown."
+        country:
+          type:
+            - string
+            - "null"
+          description: "Country, ISO 3166-1 alpha-2 code; null when unknown."
+        continent:
+          type:
+            - string
+            - "null"
+          description: "Continent code (AF, AN, AS, EU, NA, OC, SA); null when unknown."
+        asn:
+          type:
+            - integer
+            - "null"
+          description: "Autonomous system number; null when unknown."
+        provider:
+          type:
+            - string
+            - "null"
+          description: "Autonomous system organization (hosting provider); null when unknown."
+        source:
+          type: string
+          description: "Geolocation database that produced these values, for example `geolite2`."
+        updatedAt:
+          type: string
+          description: "When this location was last written (UTC)."
+          format: date-time
+        disputed:
+          type:
+            - array
+            - "null"
+          description: "Fields on which two geolocation databases disagree. null: no cross-check ran (one database loaded). Empty array: checked and in agreement. Otherwise the disputed field names; their values above are one database's claim."
+          items:
+            type: string
+        concentration:
+          allOf:
+            - "$ref": "#/components/schemas/GeoConcentration"
+          description: "How many validators share this location, with the denominator."
+    GeoConcentration:
+      type: object
+      description: "Concentration context for one validator's location. Shares are of the whole set's stake."
+      required:
+        - country
+        - asn
+        - resolvedValidators
+        - setValidators
+        - resolvedStakePct
+      properties:
+        country:
+          oneOf:
+            - "$ref": "#/components/schemas/GeoBucket"
+            - type: "null"
+          description: "Validators sharing this validator's country; null when its country is unknown or disputed."
+        asn:
+          oneOf:
+            - "$ref": "#/components/schemas/GeoBucket"
+            - type: "null"
+          description: "Validators sharing this validator's autonomous system; null when it is unknown or disputed."
+        resolvedValidators:
+          type: integer
+          description: "Validators in the set with a stored location."
+        setValidators:
+          type: integer
+          description: "Validators whose latest snapshot has a positive consensus stake."
+        resolvedStakePct:
+          type:
+            - number
+            - "null"
+          description: "Stake of located validators as a percent of the set's stake; null when the set's stake is 0."
+    GeoBucket:
+      type: object
+      description: "Validators sharing one location value."
+      required:
+        - validators
+        - stakePct
+        - basisValidators
+      properties:
+        validators:
+          type: integer
+          description: "Validators with the same value, counted over rows where the value is undisputed."
+        stakePct:
+          type:
+            - number
+            - "null"
+          description: "Their stake as a percent of the whole set's stake; null when the set's stake is 0."
+        basisValidators:
+          type: integer
+          description: "Validators with an undisputed value for this field: the basis of the count."
+    ValidatorScore:
+      type: object
+      description: "Reliability score of one validator over the last 7 days."
+      required:
+        - network
+        - validatorId
+        - value
+        - withheld
+        - withheldReason
+        - confidence
+        - uptimeSource
+        - crispObservations
+        - crispLowerBoundPct
+        - roundCoverage
+        - percentileSet
+        - percentileCohort
+        - scoredSetSize
+        - cohortSize
+        - computedAt
+        - vdpCompliant
+        - vdpStatus
+        - vdpStatusReason
+        - factorsPresent
+        - configVersion
+        - observations7d
+        - coverage
+        - epochBasis
+        - selfObservation
+        - currentState
+        - longevity
+        - breakdown
+        - time
+      properties:
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this reading."
+        validatorId:
+          type: string
+          description: "Validator id, decimal string."
+          pattern: "^[0-9]+$"
+        value:
+          type:
+            - number
+            - "null"
+          description: "Reliability score, 0 to 100, under `configVersion`. Under `v3`, null exactly when `withheld` is true: show a dash, not 0."
+        withheld:
+          type: boolean
+          description: "True when no measurement source can claim the 7-day window, and when the validator is not in the live consensus set; `value` and both percentiles are then null and `withheldReason` says which case it is. Check it before reading `uptimeSource` or `crispObservations`."
+        withheldReason:
+          type:
+            - string
+            - "null"
+          enum:
+            - out-of-set
+            - no-weekly-source
+            - null
+          description: "Why the score is withheld. `out-of-set`: the validator is not in the live consensus set, so there is no week of participation to judge. `no-weekly-source`: no source covers the window yet, for example a validator younger than the window or a gap in observation. null when `withheld` is false."
+        confidence:
+          type: string
+          description: "How much evidence backs `value`: a label that never changes `value`. With a slot-based source under `v3` it comes from the width of the Wilson interval (slot success minus `crispLowerBoundPct`); otherwise from `observations7d`, one step lower when `coverage.pct` is below 80."
+          enum:
+            - low
+            - med
+            - high
+        uptimeSource:
+          type: string
+          description: "Measurement behind the reliability factor for this validator: `crisp` = produced / assigned leader slots from observed rounds; `windowed` = share of observed time in the `live` state."
+          enum:
+            - crisp
+            - windowed
+        crispObservations:
+          type:
+            - integer
+            - "null"
+          description: "Assigned leader slots behind the slot-based measurement; null when `uptimeSource` is `windowed`."
+        crispLowerBoundPct:
+          type:
+            - number
+            - "null"
+          description: "Wilson lower bound of the slot success rate, percent: a confidence statement, not the score. null when slots do not back the value."
+        roundCoverage:
+          allOf:
+            - "$ref": "#/components/schemas/RoundCoverage"
+          description: "Network-level coverage of the 7-day window by this service's observed round data."
+        percentileSet:
+          type:
+            - number
+            - "null"
+          description: "Midrank percentile of this validator within the scored set, 0 to 100, higher is better. Under `v3` the ordering uses the reliability factor's Wilson lower bound, so equal scores are ordered by the amount of evidence. null when withheld."
+        percentileCohort:
+          type:
+            - number
+            - "null"
+          description: "Same, within validators whose stake is within ±30% of this validator's. null when withheld."
+        scoredSetSize:
+          type: integer
+          description: "Validators in the scored set: the base of `percentileSet`. Withheld validators are not in it, so a validator that has left the consensus set neither receives a percentile nor shifts anyone else's."
+        cohortSize:
+          type: integer
+          description: "Validators in the ±30% stake cohort, this one included; 1 means no peers. 0 when withheld."
+        computedAt:
+          type: string
+          description: "When the score was computed (UTC); the clock of this reading. Scores are computed for the whole set and cached for up to 10 minutes."
+          format: date-time
+        vdpCompliant:
+          type: boolean
+          description: "Historical flag. Under `v3` it equals `vdpStatus` = `pass`; use `vdpStatus`."
+        vdpStatus:
+          type: string
+          description: "Verdict against the Monad Foundation delegation program criteria this service checks: the commission threshold and the 7-day uptime bar. A separate axis, not part of `value`. `unknown` means the data cannot decide."
+          enum:
+            - pass
+            - fail
+            - unknown
+        vdpStatusReason:
+          type: string
+          description: "Why `vdpStatus` reads as it does, as text. Do not parse; the wording may change."
+        factorsPresent:
+          type: integer
+          description: "Number of `breakdown` entries with status `scored`."
+        configVersion:
+          type: string
+          description: "Scoring method version, for example `v3`. A change marks a method change, not a change in the validator; values are not comparable across versions."
+        methodVersion:
+          type: string
+          description: "Present under `v3` only: the measurement family behind the reliability factor, for example `crisp-point-1`."
+        sourceChangedAt:
+          type: string
+          description: "Present under `v3` only: when the reliability factor's source last switched on this network (UTC)."
+          format: date-time
+        observations7d:
+          type: integer
+          description: "Blocks produced over the last 7 full UTC days plus the current UTC day: the volume behind `confidence` when slots do not set it."
+        coverage:
+          allOf:
+            - "$ref": "#/components/schemas/ScoreCoverage"
+          description: "How much of the 7-day window the indexer observed."
+        epochBasis:
+          type: string
+          description: "Epoch axis of `epochParticipation` and `rewardConsistency`: `real` = epoch numbers from reward events; `approx` = buckets of 50,000 blocks."
+          enum:
+            - real
+            - approx
+        selfObservationHole:
+          type: boolean
+          description: "Present, and true, only for a validator colocated with this service's round collector while the collector's coverage of the window has interior gaps. A statement about the data; the consequence is in `selfObservation.crispWithheld`."
+        selfObservation:
+          oneOf:
+            - "$ref": "#/components/schemas/SelfObservation"
+            - type: "null"
+          description: "Residual uncertainty from gaps in this service's own round collection, for a validator colocated with the collector while such gaps exist; null otherwise."
+        preview:
+          allOf:
+            - "$ref": "#/components/schemas/ScorePreview"
+          description: "Present only while `configVersion` is `v2`: the `v3` result computed alongside, for comparison. Not the published score."
+        currentState:
+          allOf:
+            - "$ref": "#/components/schemas/LivenessState"
+          description: "Liveness verdict when the score was computed; it can lag the current verdict by up to the cache age (see `computedAt`)."
+        longevity:
+          type: object
+          description: "Display-only facts, not part of the score."
+          required:
+            - firstBlockDay
+          properties:
+            firstBlockDay:
+              type:
+                - string
+                - "null"
+              description: "First UTC day this service saw the validator produce a block. A lower bound: it cannot precede the start of this service's data. null when unavailable."
+              format: date
+        breakdown:
+          type: array
+          description: "One entry per factor, in display order: `reliability`, `epochParticipation`, `recovery`, `rewardConsistency`, `vdp`, `commissionStability`. Empty when withheld under `v3`."
+          items:
+            "$ref": "#/components/schemas/ScoreFactor"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    ScoreFactor:
+      type: object
+      description: "One factor of the score. Dropped factors do not count, and the remaining weights are renormalized to sum to 1."
+      required:
+        - factor
+        - subScore
+        - weight
+        - effectiveWeight
+        - contribution
+        - status
+        - reason
+      properties:
+        factor:
+          type: string
+          description: "Factor key: `reliability`, `epochParticipation`, `recovery`, `rewardConsistency`, `vdp` or `commissionStability`."
+        subScore:
+          type:
+            - number
+            - "null"
+          description: "Factor score, 0 to 100, 3 decimals; null when dropped."
+        weight:
+          type: number
+          description: "Configured weight before dropping and renormalizing, 4 decimals."
+        effectiveWeight:
+          type: number
+          description: "Weight after dropping and renormalizing, 4 decimals; 0 when dropped."
+        contribution:
+          type: number
+          description: "`subScore` × `effectiveWeight`, 3 decimals; 0 when dropped. The contributions sum to `value` within rounding."
+        status:
+          type: string
+          description: "`dropped`: the factor does not count (no input, or moved out of the composite); `reason` says which."
+          enum:
+            - scored
+            - dropped
+        reason:
+          type: string
+          description: "Explanation as text. Do not parse; the wording may change."
+        detail:
+          allOf:
+            - "$ref": "#/components/schemas/ScoreFactorDetail"
+          description: "Inputs behind `subScore`; the keys depend on the factor. Absent for some dropped factors."
+    ScoreFactorDetail:
+      type: object
+      description: "Inputs behind a factor's sub-score. The keys depend on the factor; each description names the factor that uses it."
+      properties:
+        crisp:
+          type: boolean
+          description: "reliability: true when produced / assigned leader slots back the factor."
+        windowed:
+          type: boolean
+          description: "reliability: true when the share of observed time in `live` backs the factor; false when only the current state is used."
+        method:
+          type: string
+          description: "reliability: scoring method of the factor, for example `crisp-point`."
+        slotSuccessPct:
+          type: number
+          description: "reliability: produced / assigned slots, percent, 4 decimals."
+        crispLowerBoundPct:
+          type: number
+          description: "reliability: Wilson lower bound of `slotSuccessPct`, percent, 4 decimals."
+        wilsonLowerPct:
+          type: number
+          description: "reliability, `v2` method: Wilson lower bound of the slot success rate, percent."
+        cappedByWindowed:
+          type: boolean
+          description: "reliability: true when the windowed measurement lowered the slot-based value."
+        cappedByIncident:
+          type: boolean
+          description: "reliability: true when a current bad liveness state capped the sub-score."
+        windowedLimb:
+          type:
+            - number
+            - string
+          description: "reliability: ceiling from the windowed measurement, percent, or `unknown` when windowed data cannot cover the week."
+        assignedSlots:
+          type: integer
+          description: "reliability: leader slots assigned in the covered epochs."
+        producedSlots:
+          type: integer
+          description: "reliability: slots produced."
+        missedSlots:
+          type: integer
+          description: "reliability: slots missed."
+        coveredEpochs:
+          type: integer
+          description: "reliability: full epochs behind the slot counts."
+        windowCoveragePct:
+          type: number
+          description: "reliability, `v2` method: share of the window those epochs span, percent."
+        uptimePct:
+          type:
+            - number
+            - string
+          description: "reliability (windowed): share of observed time in `live`, percent. vdp: the 7-day uptime or slot success checked against the bar, percent, or `unknown`."
+        liveMs:
+          type: integer
+          description: "reliability (windowed): time in `live` within the observed part of the window, ms."
+        observedMs:
+          type: integer
+          description: "reliability (windowed): observed time in the window, ms."
+        state:
+          type: string
+          description: "reliability: liveness state at compute time."
+        zeroStreak:
+          type: integer
+          description: "reliability: consecutive windows without a block at compute time."
+        anomaly:
+          type: boolean
+          description: "reliability: liveness `anomaly` flag at compute time."
+        inConsensus:
+          type: boolean
+          description: "reliability: in the consensus set at compute time."
+        participated:
+          type: integer
+          description: "epochParticipation: full member epochs with at least one produced block."
+        observed:
+          type: integer
+          description: "epochParticipation: full member epochs observed in the lookback."
+        lookbackEpochs:
+          type: integer
+          description: "epochParticipation: lookback length in epochs, resolved from a 7-day target at the measured block rate."
+        incidents:
+          type: integer
+          description: "recovery: incidents in the 7-day window; one-cycle `suspect` blips excluded."
+        transientBlips:
+          type: integer
+          description: "recovery: one-cycle `suspect` blips excluded from `incidents`."
+        currentState:
+          type: string
+          description: "recovery: current liveness state, given when an incident is ongoing."
+        meanRecoveryMs:
+          type: integer
+          description: "recovery: mean time to recover, ms; -1 when unknown."
+        lastRecoveryMs:
+          type: integer
+          description: "recovery: duration of the latest recovery, ms; -1 when unknown."
+        cv:
+          type: number
+          description: "rewardConsistency: coefficient of variation of the per-epoch rewards."
+        cvExpected:
+          type: number
+          description: "rewardConsistency: coefficient of variation expected from Poisson noise alone."
+        cvNoiseBound:
+          type: number
+          description: "rewardConsistency: 95% sampling bound of that noise at this series length."
+        noiseFactor:
+          type: number
+          description: "rewardConsistency: `cvNoiseBound` / `cvExpected`."
+        excessCv:
+          type: number
+          description: "rewardConsistency: `cv` above `cvNoiseBound`; 0 when within it."
+        meanBlocksPerEpoch:
+          type: number
+          description: "rewardConsistency: mean blocks per epoch in the series."
+        samples:
+          type: integer
+          description: "rewardConsistency: epochs in the series."
+        vdpCompliant:
+          type: boolean
+          description: "vdp: historical compliance flag."
+        commissionPct:
+          type: number
+          description: "vdp: commission, percent."
+        vdpThresholdPct:
+          type: number
+          description: "vdp: the program's commission threshold, percent."
+        uptimeSource:
+          type: string
+          description: "vdp: source of `uptimePct`: `crisp`, `windowed` or `unknown`."
+        uptimeBarPct:
+          type: number
+          description: "vdp: the program's 7-day uptime bar, percent."
+        foundationRatio:
+          type:
+            - number
+            - string
+          description: "vdp: share of stake delegated by the Monad Foundation, 0 to 1, or `unknown`."
+        changes:
+          type: integer
+          description: "commissionStability: commission changes recorded in the window."
+        windowDays:
+          type: number
+          description: "commissionStability: days of history in the window."
+        openedBeforeWindow:
+          type: boolean
+          description: "recovery: true when one counted incident began before the 7-day window opened; it may have closed since. Its duration is then measured from its real start, so `meanRecoveryMs` may exceed the window length. Except when the validator entered the window as `unknown`, the monitor's own loss of sight: that time is not charged, and the duration runs from the window's start."
+    ScoreCoverage:
+      type: object
+      description: "How much of the 7-day window the indexer observed, from the continuity of its snapshot cycles."
+      required:
+        - pct
+        - observedMs
+        - windowMs
+        - gaps
+      properties:
+        pct:
+          type: number
+          description: "Observed share of the window, percent, 2 decimals."
+        observedMs:
+          type: integer
+          description: "Observed time, ms."
+        windowMs:
+          type: integer
+          description: "Window length, ms."
+        gaps:
+          type: array
+          description: "Blind spots, ascending: intervals longer than 10 minutes without a snapshot cycle."
+          items:
+            "$ref": "#/components/schemas/CoverageGap"
+    CoverageGap:
+      type: object
+      description: "One interval the indexer did not observe."
+      required:
+        - startMs
+        - endMs
+      properties:
+        startMs:
+          type: integer
+          description: "Start, Unix time in milliseconds."
+        endMs:
+          type: integer
+          description: "End, Unix time in milliseconds."
+    RoundCoverage:
+      type: object
+      description: "Coverage of the 7-day window by this service's observed round data, for the whole network. `gateOpen` is network-wide; `uptimeSource` says whether this validator used slots."
+      required:
+        - pct
+        - observedMs
+        - windowMs
+        - coveredEpochs
+        - gateOpen
+        - reason
+      properties:
+        pct:
+          type: number
+          description: "Observed share of the window, percent, 2 decimals."
+        observedMs:
+          type: integer
+          description: "Observed time in the window, ms."
+        windowMs:
+          type: integer
+          description: "Window length, ms."
+        coveredEpochs:
+          type: integer
+          description: "Epochs fully inside observed coverage and inside the window."
+        gateOpen:
+          type: boolean
+          description: "True when coverage is sufficient for slot-based scoring on this network."
+        reason:
+          type: string
+          description: "`ok`, or why the gate is closed or slot-based scoring is held. Text; do not parse."
+    SelfObservation:
+      type: object
+      description: "Residual uncertainty for a validator colocated with this service's round collector, from gaps in the collector's coverage of the window."
+      required:
+        - holeCount
+        - holeTotalMs
+        - holeMaxMs
+        - hiddenRounds
+        - slotsDroppedFromMeasurement
+        - expectedHiddenOwnSlots
+        - thresholdOwnSlots
+        - crispWithheld
+      properties:
+        holeCount:
+          type: integer
+          description: "Gaps inside the window."
+        holeTotalMs:
+          type: integer
+          description: "Total gap time, ms."
+        holeMaxMs:
+          type: integer
+          description: "Longest gap, ms."
+        hiddenRounds:
+          type: integer
+          description: "Network rounds expected inside the gaps."
+        slotsDroppedFromMeasurement:
+          type:
+            - integer
+            - "null"
+          description: "This validator's own assigned slots in window epochs that the gaps left uncertified (the current epoch excluded): evidence excluded from the measurement. null when not measured."
+        expectedHiddenOwnSlots:
+          type:
+            - number
+            - "null"
+          description: "Expected number of this validator's own slots inside the gaps (`hiddenRounds` × its assignment share), 6 decimals. null when it could not be measured; never 0 for unknown."
+        thresholdOwnSlots:
+          type: integer
+          description: "Threshold for `expectedHiddenOwnSlots`, in own slots."
+        crispWithheld:
+          type: boolean
+          description: "True when slot-based scoring is withheld for this validator because of the gaps. Different from the top-level `withheld`."
+    ScorePreview:
+      type: object
+      description: "The `v3` result, published alongside a `v2` score for comparison."
+      required:
+        - configVersion
+        - methodVersion
+        - value
+        - withheld
+        - crispLowerBoundPct
+        - uptimeSource
+        - vdpStatus
+        - rank
+        - rankTotal
+        - percentile
+      properties:
+        configVersion:
+          type: string
+          description: "Always `v3`."
+          const: v3
+        methodVersion:
+          type: string
+          description: "Measurement family of the reliability factor."
+        value:
+          type:
+            - number
+            - "null"
+          description: "`v3` score, 0 to 100; null exactly when withheld."
+        withheld:
+          type: boolean
+          description: "True when no source can claim the week."
+        withheldReason:
+          type:
+            - string
+            - "null"
+          enum:
+            - out-of-set
+            - no-weekly-source
+            - null
+          description: "Why the score is withheld. `out-of-set`: the validator is not in the live consensus set, so there is no week of participation to judge. `no-weekly-source`: no source covers the window yet, for example a validator younger than the window or a gap in observation. null when `withheld` is false."
+        crispLowerBoundPct:
+          type:
+            - number
+            - "null"
+          description: "Wilson lower bound of the slot success rate, percent; null without a slot-based source."
+        uptimeSource:
+          type: string
+          description: "Source of the reliability factor; `instant` = current state only."
+          enum:
+            - crisp
+            - windowed
+            - instant
+        vdpStatus:
+          type: string
+          description: "Delegation program verdict under `v3` rules."
+          enum:
+            - pass
+            - fail
+            - unknown
+        vdpStatusReason:
+          type: string
+          description: "Reason for `vdpStatus`, as text."
+        rank:
+          type:
+            - integer
+            - "null"
+          description: "Dense rank in the `v3` set, 1 = best; null when withheld."
+        rankTotal:
+          type: integer
+          description: "Validators ranked under `v3`."
+        percentile:
+          type:
+            - number
+            - "null"
+          description: "Midrank percentile under `v3`, 0 to 100; null when withheld."
+        selfObservationHole:
+          type: boolean
+          description: "Same meaning as the top-level field."
+    ValidatorSlots:
+      type: object
+      description: "Leader-slot ledger of one validator, from this service's observation of consensus rounds."
+      required:
+        - network
+        - validatorId
+        - totals
+        - observedTo
+        - missedTruncated
+        - buckets
+        - coverage
+        - time
+      properties:
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this reading."
+        validatorId:
+          type: string
+          description: "Validator id, decimal string."
+          pattern: "^[0-9]+$"
+        totals:
+          type: object
+          description: "Sums over the returned epochs."
+          required:
+            - assigned
+            - produced
+            - missed
+            - crispPct
+            - exact
+            - status
+          properties:
+            assigned:
+              type: integer
+              description: "Leader slots assigned (produced + missed)."
+            produced:
+              type: integer
+              description: "Slots produced."
+            missed:
+              type: integer
+              description: "Slots missed."
+            crispPct:
+              type:
+                - number
+                - "null"
+              description: "`produced` / `assigned` × 100, 4 decimals; null when nothing was assigned."
+            exact:
+              type: boolean
+              description: "True when every returned epoch was fully observed. Also true for an empty ledger; read `status` instead."
+            status:
+              type: string
+              description: "`exact`: at least one epoch, all fully observed. `partial`: at least one epoch only partly observed, so the totals are a lower bound. `empty`: no observed slots."
+              enum:
+                - exact
+                - partial
+                - empty
+        observedTo:
+          type:
+            - string
+            - "null"
+          description: "Newest round-data write for this validator (UTC); the clock of this reading. null when nothing was observed."
+          format: date-time
+        missedTruncated:
+          type: boolean
+          description: "True when the missed rounds were cut at 500 in total, newest kept. Counts stay complete."
+        buckets:
+          type: array
+          description: "One entry per epoch, newest first."
+          items:
+            "$ref": "#/components/schemas/SlotBucket"
+        coverage:
+          type: array
+          description: "Runs of rounds this service observed that overlap the returned epochs, ascending; rounds between runs were not observed."
+          items:
+            "$ref": "#/components/schemas/SlotsCoverageSegment"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    SlotBucket:
+      type: object
+      description: "One epoch of this validator's leader slots. Counts are exact only when `fullyObserved` is true."
+      required:
+        - epoch
+        - assigned
+        - produced
+        - missed
+        - fullyObserved
+        - firstRound
+        - lastRound
+        - missedRounds
+      properties:
+        epoch:
+          type: string
+          description: "Epoch number, decimal string."
+          pattern: "^[0-9]+$"
+        assigned:
+          type: integer
+          description: "Slots assigned in the epoch (produced + missed), within observed rounds."
+        produced:
+          type: integer
+          description: "Slots produced."
+        missed:
+          type: integer
+          description: "Slots missed."
+        fullyObserved:
+          type: boolean
+          description: "True when the whole epoch lies inside observed coverage; otherwise the counts are a lower bound."
+        firstRound:
+          type: string
+          description: "Lowest round recorded for this validator in the epoch, decimal string."
+          pattern: "^[0-9]+$"
+        lastRound:
+          type: string
+          description: "Highest round recorded for this validator in the epoch, decimal string."
+          pattern: "^[0-9]+$"
+        missedRounds:
+          type: array
+          description: "Every missed slot in the epoch, newest first."
+          items:
+            "$ref": "#/components/schemas/MissedRound"
+    MissedRound:
+      type: object
+      description: "One missed leader slot."
+      required:
+        - round
+        - ts
+      properties:
+        round:
+          type: string
+          description: "Round number, decimal string."
+          pattern: "^[0-9]+$"
+        ts:
+          type: string
+          description: "When the missed round was observed (UTC)."
+          format: date-time
+    SlotsCoverageSegment:
+      type: object
+      description: "A contiguous run of observed rounds."
+      required:
+        - fromRound
+        - toRound
+        - fromTs
+        - toTs
+      properties:
+        fromRound:
+          type: string
+          description: "First round of the run, decimal string."
+          pattern: "^[0-9]+$"
+        toRound:
+          type: string
+          description: "Last round of the run, decimal string."
+          pattern: "^[0-9]+$"
+        fromTs:
+          type: string
+          description: "Start of the run (UTC)."
+          format: date-time
+        toTs:
+          type: string
+          description: "End of the run (UTC)."
+          format: date-time
+    ValidatorSeries:
+      type: object
+      description: "Block production or block rewards of one validator per time bucket."
+      required:
+        - metric
+        - bucket
+        - from
+        - to
+        - points
+        - time
+      properties:
+        metric:
+          type: string
+          description: "Metric of `points[].value`."
+          enum:
+            - production
+            - reward
+        bucket:
+          type: string
+          description: "Bucket size: hour, UTC day or ISO week."
+          enum:
+            - "1h"
+            - "1d"
+            - "1w"
+        from:
+          type: string
+          description: "Start of the window used (UTC), after defaults and the 90-day limit for day and week buckets."
+          format: date-time
+        to:
+          type: string
+          description: "End of the window used (UTC)."
+          format: date-time
+        points:
+          type: array
+          description: "Buckets with at least one block, ascending; empty buckets are omitted."
+          items:
+            "$ref": "#/components/schemas/SeriesPoint"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    SeriesPoint:
+      type: object
+      description: "One bucket."
+      required:
+        - ts
+        - value
+      properties:
+        ts:
+          type: string
+          description: "Start of the bucket (UTC). Day and week buckets are whole UTC days and ISO weeks starting Monday, so the first bucket can start before `from`."
+          format: date-time
+        value:
+          type: string
+          description: "`production`: blocks produced in the bucket. `reward`: sum of block rewards (net of commission, as in `earned` of `GET /validator/{id}`), wei. Decimal integer string."
+          pattern: "^[0-9]+$"
+        cumulative:
+          type: string
+          description: "`reward` only: running sum of `value` from the first returned bucket, wei."
+          pattern: "^[0-9]+$"
+    ValidatorDelegators:
+      type: object
+      description: "Largest delegator positions of one validator, read from the chain."
+      required:
+        - network
+        - validatorId
+        - totalDelegators
+        - truncated
+        - fetchedAt
+        - delegators
+        - time
+      properties:
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this reading."
+        validatorId:
+          type: string
+          description: "Validator id, decimal string."
+          pattern: "^[0-9]+$"
+        totalDelegators:
+          type: integer
+          description: "Delegator addresses returned by the chain's enumeration, zero-stake positions included; a lower bound when `truncated` is true."
+        truncated:
+          type: boolean
+          description: "True when the enumeration stopped at its budget of 5 pages of up to 100 addresses."
+        fetchedAt:
+          type: string
+          description: "When the enumeration finished (UTC); the clock of this reading. Results are cached for 10 minutes, and an older result is served while a refresh runs."
+          format: date-time
+        delegators:
+          type: array
+          description: "Positions with non-zero stake, plus the operator's own position even when zero, sorted by stake descending (ties by address) and cut to `limit`."
+          items:
+            "$ref": "#/components/schemas/Delegator"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    Delegator:
+      type: object
+      description: "One delegator position."
+      required:
+        - address
+        - stakeWei
+        - isSelf
+      properties:
+        address:
+          type: string
+          description: "Delegator address, 0x-prefixed hex."
+          pattern: "^0x[0-9a-fA-F]{40}$"
+        stakeWei:
+          type: string
+          description: "Stake of this position, wei as a decimal integer string."
+          pattern: "^[0-9]+$"
+        isSelf:
+          type: boolean
+          description: "True for the validator's auth address: the operator's own position."
+    ValidatorEvents:
+      type: object
+      description: "Changes of this service's liveness verdict for one validator, newest first."
+      required:
+        - network
+        - validatorId
+        - count
+        - events
+        - time
+      properties:
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this reading."
+        validatorId:
+          type: string
+          description: "Requested validator id, decimal string."
+          pattern: "^[0-9]+$"
+        count:
+          type: integer
+          description: "Number of entries in `events`."
+        events:
+          type: array
+          description: "Newest first, at most `limit` entries."
+          items:
+            "$ref": "#/components/schemas/LivenessEvent"
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    LivenessEvent:
+      type: object
+      description: "One change of the liveness verdict."
+      required:
+        - id
+        - ts
+        - fromState
+        - toState
+        - context
+        - transient
+      properties:
+        id:
+          type: string
+          description: "Event id, decimal string; increases with insertion order."
+          pattern: "^[0-9]+$"
+        ts:
+          type: string
+          description: "When the indexer cycle that changed the verdict ran (UTC); the clock of this event."
+          format: date-time
+        fromState:
+          allOf:
+            - "$ref": "#/components/schemas/LivenessState"
+          description: "Verdict before the change."
+        toState:
+          allOf:
+            - "$ref": "#/components/schemas/LivenessState"
+          description: "Verdict after the change."
+        context:
+          allOf:
+            - "$ref": "#/components/schemas/LivenessEventContext"
+          description: "Verdict inputs recorded at the change."
+        transient:
+          type: boolean
+          description: "True for both events of a one-cycle `suspect` episode that returned to `live` or `warming` within 1.5 indexer cycles: expected noise of the test, not an incident. Classified within the returned page."
+    LivenessEventContext:
+      type: object
+      description: "Verdict inputs recorded at the change."
+      required:
+        - zeroStreak
+        - windowMs
+        - infraStall
+        - anomaly
+      properties:
+        zeroStreak:
+          type: integer
+          description: "Consecutive windows without a produced block."
+        windowMs:
+          type: integer
+          description: "Production window behind the verdict, ms."
+        infraStall:
+          type: boolean
+          description: "True when no block was produced while the whole network was not advancing: an infrastructure incident, not a validator fault."
+        anomaly:
+          type: boolean
+          description: "Liveness `anomaly` flag, as in `GET /validator/{id}`."
+        verified:
+          type: boolean
+          description: "Present when the change was checked against a fallback RPC endpoint: true when it confirmed the change."
+        verifyOutcome:
+          type: string
+          description: "Present with `verified`: `confirmed`; `unavailable` (no second opinion); `mismatch-expired` (the fallback disagreed, but the hold reached its limit)."
+          enum:
+            - confirmed
+            - unavailable
+            - mismatch-expired
+    NetworkDecentralization:
+      type: object
+      description: "Stake concentration facts for the whole network. Not a score and not part of any score."
+      required:
+        - basis
+        - axes
+        - jurisdictions
+        - superminority
+        - minNakamoto33
+        - vdp
+        - caveats
+        - network
+        - stakeBasis
+        - computedAt
+        - time
+      properties:
+        basis:
+          type: object
+          description: "The population: one entry per validator with a snapshot on this network, from its latest snapshot (validators that left the set keep their last one)."
+          required:
+            - validators
+            - totalStakeWei
+            - geoResolvedValidators
+            - geoResolvedStakeShare
+          properties:
+            validators:
+              type: integer
+              description: "Validators in the basis."
+            totalStakeWei:
+              type: string
+              description: "Sum of their consensus stake, wei as a decimal integer string."
+              pattern: "^[0-9]+$"
+            geoResolvedValidators:
+              type: integer
+              description: "Validators with an undisputed country."
+            geoResolvedStakeShare:
+              type: number
+              description: "Their share of total stake, 0 to 1, 4 decimals."
+        axes:
+          type: object
+          description: "Concentration along five axes."
+          required:
+            - validator
+            - country
+            - provider
+            - city
+            - dataCenter
+          properties:
+            validator:
+              allOf:
+                - "$ref": "#/components/schemas/DecentralizationAxis"
+              description: "Per validator id; operators running several validators are not merged."
+            country:
+              allOf:
+                - "$ref": "#/components/schemas/DecentralizationAxis"
+              description: "Per country, ISO 3166-1 alpha-2 code."
+            provider:
+              allOf:
+                - "$ref": "#/components/schemas/DecentralizationAxis"
+              description: "Per hosting provider (autonomous system organization)."
+            city:
+              allOf:
+                - "$ref": "#/components/schemas/DecentralizationAxis"
+              description: "Per city. Where geolocation has no city, a curated city is used for a few single-data-center providers."
+            dataCenter:
+              allOf:
+                - "$ref": "#/components/schemas/DecentralizationAxis"
+              description: "Per data center, keyed `ASN-country-city`, or `ASN-country` with `partial: true` when the city is unknown."
+        jurisdictions:
+          type: array
+          description: "Country blocs: `EU` and `North America`."
+          items:
+            "$ref": "#/components/schemas/Jurisdiction"
+        superminority:
+          allOf:
+            - "$ref": "#/components/schemas/Superminority"
+          description: "The smallest set of largest-stake validators that together hold more than 1/3 of total stake."
+        minNakamoto33:
+          type:
+            - object
+            - "null"
+          description: "The smallest `nakamoto33` across the axes that pass the coverage gate; null when none does."
+          required:
+            - value
+            - axis
+          properties:
+            value:
+              type: integer
+              description: "The coefficient."
+            axis:
+              type: string
+              description: "Axis name."
+        vdp:
+          type: object
+          description: "Share of total stake by Monad Foundation delegation program verdict (`vdpStatus` of `GET /validator/{id}/score`), 0 to 1, 4 decimals."
+          required:
+            - pass
+            - fail
+            - unknown
+          properties:
+            pass:
+              type: number
+              description: "Verdict `pass`."
+            fail:
+              type: number
+              description: "Verdict `fail`."
+            unknown:
+              type: number
+              description: "Verdict `unknown`."
+        caveats:
+          type: array
+          description: "Known limits of these facts, as text."
+          items:
+            type: string
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this reading."
+        stakeBasis:
+          type: string
+          description: "Stake used: consensus stake from each validator's latest snapshot."
+          const: "consensus_stake:latest_snapshot"
+        computedAt:
+          type: string
+          description: "When these facts were computed (UTC); the clock of this reading. Computed for the whole set and cached for up to 10 minutes."
+          format: date-time
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    DecentralizationAxis:
+      type: object
+      description: "Concentration of stake along one axis. Validators whose value on the axis is unknown or disputed are left out of the coefficients and reported in `unknownStakeShare`."
+      required:
+        - top
+        - groups
+        - hhiStake
+        - nakamoto33
+        - nakamoto67
+        - unknownStakeShare
+        - unknownValidators
+        - coverageStakeShare
+        - thresholdBreaches
+      properties:
+        top:
+          type: array
+          description: "Largest entities by stake, descending, at most 10."
+          items:
+            "$ref": "#/components/schemas/AxisEntity"
+        groups:
+          type: integer
+          description: "Entities with a known value on this axis."
+        hhiStake:
+          type: number
+          description: "Herfindahl-Hirschman index of the known entities' shares of the known stake, 0 to 1, 4 decimals."
+        nakamoto33:
+          type:
+            - integer
+            - "null"
+          description: "Fewest entities that together hold more than 1/3 of the known stake; null when `coverageStakeShare` is below 0.9."
+        nakamoto67:
+          type:
+            - integer
+            - "null"
+          description: "Same for more than 2/3; null under the same condition."
+        unknownStakeShare:
+          type: number
+          description: "Share of total stake whose value on this axis is unknown or disputed, 0 to 1, 4 decimals."
+        unknownValidators:
+          type: integer
+          description: "Validators whose value on this axis is unknown or disputed."
+        coverageStakeShare:
+          type: number
+          description: "1 minus `unknownStakeShare`, 4 decimals."
+        thresholdBreaches:
+          type: array
+          description: "Entities holding at least 10% of total stake."
+          items:
+            "$ref": "#/components/schemas/ThresholdBreach"
+    AxisEntity:
+      type: object
+      description: "One entity on an axis."
+      required:
+        - key
+        - validators
+        - stakeWei
+        - stakeShare
+      properties:
+        key:
+          type: string
+          description: "Entity: validator id, country code, provider name, city or data-center key."
+        validators:
+          type: integer
+          description: "Validators in this entity."
+        stakeWei:
+          type: string
+          description: "Their stake, wei as a decimal integer string."
+          pattern: "^[0-9]+$"
+        stakeShare:
+          type: number
+          description: "Their share of total stake (known and unknown), 0 to 1, 4 decimals."
+        partial:
+          type: boolean
+          description: "`dataCenter` only: present, and true, when the key lacks the city."
+    ThresholdBreach:
+      type: object
+      description: "An entity at or above a concentration level."
+      required:
+        - key
+        - stakeShare
+        - level
+      properties:
+        key:
+          type: string
+          description: "Entity key."
+        stakeShare:
+          type: number
+          description: "Its share of total stake, 0 to 1, 4 decimals."
+        level:
+          type: number
+          description: "Highest level reached: 0.1, 0.15, 0.25 or 0.334."
+    Jurisdiction:
+      type: object
+      description: "A country bloc."
+      required:
+        - key
+        - validators
+        - stakeShare
+      properties:
+        key:
+          type: string
+          description: "Bloc name."
+        validators:
+          type: integer
+          description: "Validators with an undisputed country in the bloc."
+        stakeShare:
+          type: number
+          description: "Their share of total stake, 0 to 1, 4 decimals."
+    Superminority:
+      type: object
+      description: "The smallest set of largest-stake validators that together hold more than 1/3 of total stake."
+      required:
+        - count
+        - boundaryStakeWei
+        - memberIds
+      properties:
+        count:
+          type: integer
+          description: Members.
+        boundaryStakeWei:
+          type: string
+          description: "Stake of the smallest member: the stake needed to enter the set, wei as a decimal integer string."
+          pattern: "^[0-9]+$"
+        memberIds:
+          type: array
+          description: "Member validator ids, largest stake first."
+          items:
+            type: string
+            pattern: "^[0-9]+$"
+    Health:
+      type: object
+      description: "Process liveness and build provenance."
+      required:
+        - status
+        - service
+        - chains
+        - time
+        - gitSha
+        - builtAt
+      properties:
+        status:
+          type: string
+          description: "Always `ok` while the process answers."
+          const: ok
+        service:
+          type: string
+          description: "Service name."
+          const: monad-monitor-api
+        chains:
+          type: object
+          description: "Chain ids of the networks this service's code knows. `/v1` serves `mainnet` only: `testnet` is listed here, but every route that takes `network` refuses it with `400 unsupported network`."
+          required:
+            - mainnet
+            - testnet
+          properties:
+            mainnet:
+              type: integer
+              description: "Chain id of Monad mainnet."
+            testnet:
+              type: integer
+              description: "Chain id of Monad testnet."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+        gitSha:
+          type: string
+          description: "Short git commit of the running build, or `unknown`."
+        builtAt:
+          type: string
+          description: "Build time (ISO 8601, UTC), or `unknown`."
+    IndexerHealth:
+      description: "Freshness verdict of the indexer: a full report when a heartbeat exists, otherwise a short `down` body."
+      anyOf:
+        - "$ref": "#/components/schemas/IndexerHealthReport"
+        - "$ref": "#/components/schemas/IndexerHealthUnavailable"
+    IndexerHealthReport:
+      type: object
+      description: "Heartbeat, table ages and verdict. Ages are in ms, measured at `time`."
+      required:
+        - status
+        - network
+        - cycleSeq
+        - finalizedBlock
+        - ageMs
+        - okAgeMs
+        - freshness
+        - time
+      properties:
+        status:
+          type: string
+          description: "`down`: no indexer cycle started for more than 3 cycles (15 minutes). `degraded`: cycles run but none commits, or a table's newest row is older than 2 cycles (snapshots, liveness) or 3 cycles (block rewards). `ok` otherwise."
+          enum:
+            - ok
+            - degraded
+            - down
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network the indexer serves."
+        cycleSeq:
+          type: string
+          description: "Indexer cycle counter, decimal string."
+          pattern: "^[0-9]+$"
+        finalizedBlock:
+          type:
+            - string
+            - "null"
+          description: "Finalized block read by the latest cycle, decimal string; null when not recorded."
+          pattern: "^[0-9]+$"
+        ageMs:
+          type: integer
+          description: "Time since the latest cycle started, ms."
+        okAgeMs:
+          type:
+            - integer
+            - "null"
+          description: "Time since the latest successful cycle, ms; null when none succeeded."
+        freshness:
+          type: object
+          description: "Age of the newest row per table, ms; null for an empty table."
+          required:
+            - snapshotsAgeMs
+            - livenessAgeMs
+            - blockRewardsAgeMs
+          properties:
+            snapshotsAgeMs:
+              type:
+                - integer
+                - "null"
+              description: "Validator snapshots."
+            livenessAgeMs:
+              type:
+                - integer
+                - "null"
+              description: "Liveness verdicts."
+            blockRewardsAgeMs:
+              type:
+                - integer
+                - "null"
+              description: "Block rewards."
+        blockRate:
+          type: object
+          description: "Block rate this service uses for time estimates. Absent when it cannot be read."
+          required:
+            - blocksPerSec
+            - blockTimeMs
+            - source
+          properties:
+            blocksPerSec:
+              type: number
+              description: "Blocks per second."
+            blockTimeMs:
+              type: number
+              description: "Milliseconds per block."
+            source:
+              type: string
+              description: "`measured`: from the last 2 hours of snapshots. `last-known-good`: the latest measurement, used when the current one failed. `default`: a built-in value, used when no measurement exists."
+              enum:
+                - measured
+                - last-known-good
+                - default
+        reason:
+          type: string
+          description: "Present when `status` is not `ok`: why, as text."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    IndexerHealthUnavailable:
+      type: object
+      description: "No heartbeat to judge."
+      required:
+        - status
+        - reason
+        - time
+      properties:
+        status:
+          type: string
+          description: "Always `down`."
+          const: down
+        reason:
+          type: string
+          description: "Why, for example `no heartbeat`."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network the indexer serves."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    DelegatorsUnavailable:
+      type: object
+      description: "Error body of a 503 from the delegators route: there is no list to give right now. Retry after `retryAfterSec` seconds; the `Retry-After` header carries the same number."
+      required:
+        - error
+        - reason
+        - retryAfterSec
+        - network
+        - validatorId
+        - time
+      properties:
+        error:
+          type: string
+          const: "delegators unavailable"
+        reason:
+          type: string
+          enum:
+            - warming
+            - busy
+            - rpc-failed
+          description: "`warming`: the first reading for this validator is still running; it keeps running, and a retry is answered from it. `busy`: too many readings are queued, so none was started. `rpc-failed`: the chain reads failed."
+        retryAfterSec:
+          type: integer
+          minimum: 1
+          description: "Seconds to wait before retrying. A hint, not a promise."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of the request."
+        validatorId:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Requested validator id."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+  parameters:
+    ValidatorId:
+      name: id
+      in: path
+      required: true
+      description: "Validator id: decimal digits only, at most 9223372036854775807. Anything else returns 400."
+      schema:
+        type: string
+        pattern: "^[0-9]+$"
+    Network:
+      name: network
+      in: query
+      required: false
+      description: "Network. `mainnet` is the only network this API serves; an empty value means `mainnet`. `network=testnet` returns 400 `unsupported network`, and any other value returns 400 `invalid network`."
+      schema:
+        type: string
+        enum:
+          - mainnet
+        default: mainnet
+  headers:
+    RateLimit-Limit:
+      description: "Requests allowed per fixed 60-second window for this route's rate class, per client IP address (IPv6 by /64): heavy 120, standard 300, logo 600. `/v1` and unversioned paths share one budget; HEAD counts like GET."
+      schema:
+        type: integer
+    RateLimit-Remaining:
+      description: "Requests left in the current window."
+      schema:
+        type: integer
+    RateLimit-Reset:
+      description: "Seconds until the current window resets."
+      schema:
+        type: integer
+    Retry-After:
+      description: "Seconds to wait before retrying."
+      schema:
+        type: integer
+    Cache-Control:
+      description: "Caching directive: `public, max-age=60` on 200 responses of data routes, `public, max-age=86400` on the logo, `no-store` on health routes and on every error."
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: "Invalid parameter: the validator id, the network, or (series only) `from` or `to`."
+      headers:
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+    NotFound:
+      description: "Not found; `error` names what. The operation description says when this happens."
+      headers:
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/NotFoundError"
+    TooManyRequests:
+      description: "Rate limit exceeded for this client IP address and rate class. Wait `Retry-After` seconds."
+      headers:
+        Retry-After:
+          "$ref": "#/components/headers/Retry-After"
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/RateLimitError"
+    InternalError:
+      description: "Internal error. The body carries an `errorId` to quote in a report and no internal detail."
+      headers:
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/InternalServerError"
+    ServiceUnavailable:
+      description: "No answer right now; the body says why. Wait `Retry-After` seconds."
+      headers:
+        Retry-After:
+          "$ref": "#/components/headers/Retry-After"
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/DelegatorsUnavailable"

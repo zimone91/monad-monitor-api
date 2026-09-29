@@ -1,0 +1,11 @@
+# Schema validity of examples, and nothing else.
+#
+# Used by the examples job (the captured examples in openapi/openapi.yaml) and
+# by contract-live (a copy of the spec with the live answers substituted for
+# examples.live.value). Every other rule of spectral:oas is off here; the full
+# lint is spec-lint's job (.spectral.yaml).
+extends:
+  - [spectral:oas, off]
+rules:
+  oas3-valid-media-example: error
+  oas3-valid-schema-example: error

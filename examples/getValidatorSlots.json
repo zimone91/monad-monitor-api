@@ -1,0 +1,75 @@
+{
+  "network": "mainnet",
+  "validatorId": "109",
+  "totals": {
+    "assigned": 7390,
+    "produced": 7390,
+    "missed": 0,
+    "crispPct": 100,
+    "exact": false,
+    "status": "partial"
+  },
+  "observedTo": "2026-09-29T00:02:38.056Z",
+  "missedTruncated": false,
+  "buckets": [
+    {
+      "epoch": "2178",
+      "produced": 117,
+      "missed": 0,
+      "assigned": 117,
+      "fullyObserved": false,
+      "firstRound": "108983465",
+      "lastRound": "109016787",
+      "missedRounds": []
+    },
+    {
+      "epoch": "2177",
+      "produced": 196,
+      "missed": 0,
+      "assigned": 196,
+      "fullyObserved": true,
+      "firstRound": "108933488",
+      "lastRound": "108983029",
+      "missedRounds": []
+    },
+    {
+      "epoch": "2176",
+      "produced": 171,
+      "missed": 0,
+      "assigned": 171,
+      "fullyObserved": true,
+      "firstRound": "108883234",
+      "lastRound": "108932963",
+      "missedRounds": []
+    },
+    {
+      "epoch": "2175",
+      "produced": 185,
+      "missed": 0,
+      "assigned": 185,
+      "fullyObserved": true,
+      "firstRound": "108833139",
+      "lastRound": "108882959",
+      "missedRounds": []
+    },
+    {
+      "epoch": "2174",
+      "produced": 195,
+      "missed": 0,
+      "assigned": 195,
+      "fullyObserved": true,
+      "firstRound": "108783987",
+      "lastRound": "108832627",
+      "missedRounds": []
+    }
+  ],
+  "coverage": [
+    {
+      "fromRound": "99922647",
+      "toRound": "109017015",
+      "fromTs": "2026-08-28T04:29:18.119Z",
+      "toTs": "2026-09-29T00:03:32.514Z"
+    }
+  ],
+  "time": "2026-09-29T00:03:51.874Z"
+}

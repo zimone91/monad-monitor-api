@@ -1,0 +1,20 @@
+{
+  "network": "mainnet",
+  "validatorId": "109",
+  "totalDelegators": 21,
+  "truncated": false,
+  "fetchedAt": "2026-09-28T23:58:07.786Z",
+  "delegators": [
+    {
+      "address": "0xAAa10c4d02B1774aFb402890E3d311CF9e726E9A",
+      "stakeWei": "52500000000000000000000000",
+      "isSelf": false
+    },
+    {
+      "address": "0x19149465777512E686aD5f6f1294f1e8bE709580",
+      "stakeWei": "1555140000000000000000000",
+      "isSelf": false
+    }
+  ],
+  "time": "2026-09-29T00:03:55.026Z"
+}
