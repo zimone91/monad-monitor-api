@@ -134,7 +134,16 @@ class Page(html.parser.HTMLParser):
 def raw_inline_scripts(text):
     # The hash covers the element's text exactly as written; html.parser would
     # decode nothing inside <script> either, but read it raw to be sure.
-    return re.findall(r"<script\b(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script\s*>", text, re.S | re.I)
+    #
+    # The end tag is matched the way a browser ends script data: "</script" in
+    # any case, followed by whitespace, "/" or ">", and then anything up to ">"
+    # (an end tag with attributes is a parse error, but it still ends the
+    # script). Matching only "</script>" let a script closed by "</script x>"
+    # or "</script/>" escape the hash check: it was never read, so a page the
+    # browser would block passed (CodeQL py/bad-tag-filter). "</scriptx>" is
+    # not an end tag and does not end the script.
+    return re.findall(r"<script\b(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script(?=[\t\n\f\r />])[^>]*>",
+                      text, re.S | re.I)
 
 
 def parse_policy(content):
@@ -241,7 +250,7 @@ def cmd_check(args):
         print("site-page: %d problem(s) in %s" % (len(errors), index))
         return 1
     print("site-page: ok - %d resource reference(s), all from this site; %d inline script(s) hashed; "
-          "one policy, before every script, naming no host" % (len(page.refs), len(page.inline_scripts)))
+          "one policy, before every script, naming no host" % (len(page.refs), len(raw_inline_scripts(text))))
     return 0
 
 
