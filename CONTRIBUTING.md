@@ -21,6 +21,10 @@ Before filing a data question, check [Reading the data](docs/reading-the-data.md
 Pull requests are not accepted: this is a single-author repository, and every change is made and signed by the maintainer.
 An issue that describes the change is the way to propose it.
 
+## Running the checks
+
+The scripts in `.github/scripts/` that scan the whole repository list its files from the git index (`git ls-files`), so run them after `git add`: a file that is not added is not checked, and when no file is, they stop with `CANNOT CHECK` rather than pass.
+
 ## Security
 
 Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).

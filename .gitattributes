@@ -1,0 +1,8 @@
+# Linguist counts nothing under .github/ (its vendor rule `(^|/)\.github/`), so
+# this repository reported no language at all, and CodeQL default setup, which
+# takes its languages from Linguist, analyzed only the workflows. The Python
+# scripts are this repository's own code: they are the checks that keep the
+# contract honest. `linguist-vendored=false` brings them back into detection;
+# `linguist-detectable=true` alone would not, because vendored files are
+# excluded before detectability is considered.
+.github/scripts/*.py linguist-vendored=false linguist-detectable=true
