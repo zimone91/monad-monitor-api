@@ -3,7 +3,7 @@
 openapi: "3.1.0"
 info:
   title: "Monad Monitor API"
-  version: "1.0.0-beta.1"
+  version: "1.0.0-beta.2"
   description: "Read-only API for Monad validator data. Every reading carries its own timestamp, and every JSON response carries `time`, the moment it was generated. Beta, no SLA. Independent project, not affiliated with the Monad Foundation."
   license:
     name: MIT
@@ -200,7 +200,7 @@ paths:
       tags:
         - validators
       summary: "Get the reliability score"
-      description: "Reliability score, 0 to 100, over the last 7 days, with confidence, percentiles, coverage and a per-factor breakdown. This is this service's own method, versioned by `configVersion`. Scores are computed for the whole set and cached for up to 10 minutes; `computedAt` is the clock of this reading. 404 when the validator is not in the scored set.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      description: "Reliability score, 0 to 100, over the last 7 days, with confidence, percentiles, coverage and a per-factor breakdown. This is this service's own method, versioned by `configVersion`. Scores are computed for the whole set every 10 minutes, behind the set being served, so a request does not wait for a computation; `computedAt` says when the served set was computed. 404 when the validator is not in the scored set. 503 with `Retry-After` in the first seconds after the service starts, before its first score set is computed.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
       parameters:
         - "$ref": "#/components/parameters/ValidatorId"
         - "$ref": "#/components/parameters/Network"
@@ -348,6 +348,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ScoreUnavailable"
   "/validator/{id}/slots":
     get:
       operationId: getValidatorSlots
@@ -545,7 +547,7 @@ paths:
       tags:
         - validators
       summary: "Get the top delegators"
-      description: "Largest delegator positions of one validator by stake, read from the chain. `fetchedAt` is the clock of this reading: the enumeration is cached for 10 minutes, and an older result is served while a refresh runs. 404 when the validator is not tracked on this network or the chain lists no such validator. 503 with `Retry-After` when there is no list to give yet: the first reading for this validator takes longer than 10 seconds (it keeps running and fills the cache), too many readings are queued, or the chain reads failed.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      description: "Largest delegator positions of one validator by stake, read from the chain. `fetchedAt` says when this list was read. A list older than 10 minutes is served at once while a new reading runs behind it. Past 30 minutes the new reading runs first, and the request waits for it, up to 10 seconds, only when it can finish in that time; otherwise the older list is served with its own `fetchedAt`. 404 when the validator is not tracked on this network, or when the chain listed no such validator at its first reading; once a list is held, a later reading that finds no such validator does not remove it. 503 with `Retry-After` when there is no list to give yet: the first reading for this validator takes longer than 10 seconds (it keeps running and fills the cache), too many readings are queued, or the chain reads failed.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
       parameters:
         - "$ref": "#/components/parameters/ValidatorId"
         - "$ref": "#/components/parameters/Network"
@@ -756,7 +758,7 @@ paths:
       tags:
         - network
       summary: "Get network decentralization"
-      description: "Stake concentration across validators, countries, providers, cities and data centers: Nakamoto coefficients, HHI, unknown shares, jurisdiction blocs, the superminority and the stake split by delegation program verdict. Facts, not a grade. Computed for the whole set and cached for up to 10 minutes; `computedAt` is the clock of this reading. Geolocation: MaxMind GeoLite2.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      description: "Stake concentration across validators, countries, providers, cities and data centers: Nakamoto coefficients, HHI, unknown shares, jurisdiction blocs, the superminority and the stake split by delegation program verdict. Facts, not a grade. Computed for the whole set, with the delegation program verdicts of the score set behind `GET /validator/{id}/score`: `computedAt` is that score set's time, and the stake and geolocation data were read at most 10 minutes before the response. 503 with `Retry-After` in the first seconds after the service starts, before its first score set is computed. Geolocation: MaxMind GeoLite2.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
       parameters:
         - "$ref": "#/components/parameters/Network"
       responses:
@@ -996,6 +998,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/DecentralizationUnavailable"
   "/health":
     get:
       operationId: getHealth
@@ -1904,7 +1908,7 @@ components:
           description: "Validators in the ±30% stake cohort, this one included; 1 means no peers. 0 when withheld."
         computedAt:
           type: string
-          description: "When the score was computed (UTC); the clock of this reading. Scores are computed for the whole set and cached for up to 10 minutes."
+          description: "When the score set this result comes from was computed (UTC). The set is computed again every 10 minutes, so this is normally at most about 10 minutes plus one computation old. When a computation fails, the previous set stays served, and `computedAt` shows how old it is."
           format: date-time
         vdpCompliant:
           type: boolean
@@ -2595,7 +2599,7 @@ components:
           description: "True when the enumeration stopped at its budget of 5 pages of up to 100 addresses."
         fetchedAt:
           type: string
-          description: "When the enumeration finished (UTC); the clock of this reading. Results are cached for 10 minutes, and an older result is served while a refresh runs."
+          description: "When this list was read from the chain (UTC). A list is read again after 10 minutes, behind the one served; past 30 minutes the new reading runs first (see the operation)."
           format: date-time
         delegators:
           type: array
@@ -2840,7 +2844,7 @@ components:
           const: "consensus_stake:latest_snapshot"
         computedAt:
           type: string
-          description: "When these facts were computed (UTC); the clock of this reading. Computed for the whole set and cached for up to 10 minutes."
+          description: "When the score set these facts use was computed (UTC): the same instant as `computedAt` of `GET /validator/{id}/score` for that set. The stake and geolocation data behind them were read at most 10 minutes before the response."
           format: date-time
         time:
           "$ref": "#/components/schemas/ResponseTime"
@@ -3165,6 +3169,67 @@ components:
           description: "Requested validator id."
         time:
           "$ref": "#/components/schemas/ResponseTime"
+    ScoreUnavailable:
+      type: object
+      description: "Error body of a 503 from the score route: the service has started, and its first score set is not computed yet. Retry after `retryAfterSec` seconds; the `Retry-After` header carries the same number."
+      required:
+        - error
+        - reason
+        - retryAfterSec
+        - network
+        - validatorId
+        - time
+      properties:
+        error:
+          type: string
+          const: "score unavailable"
+        reason:
+          type: string
+          enum:
+            - building
+          description: "`building`: the first score set since the service started is still being computed. The computation keeps running, and a retry is answered from it."
+        retryAfterSec:
+          type: integer
+          minimum: 1
+          description: "Seconds to wait before retrying. A hint, not a promise."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of the request."
+        validatorId:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Requested validator id."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    DecentralizationUnavailable:
+      type: object
+      description: "Error body of a 503 from the decentralization route: the service has started, and its first score set is not computed yet. Retry after `retryAfterSec` seconds; the `Retry-After` header carries the same number."
+      required:
+        - error
+        - reason
+        - retryAfterSec
+        - network
+        - time
+      properties:
+        error:
+          type: string
+          const: "decentralization unavailable"
+        reason:
+          type: string
+          enum:
+            - building
+          description: "`building`: the first score set since the service started is still being computed. The computation keeps running, and a retry is answered from it."
+        retryAfterSec:
+          type: integer
+          minimum: 1
+          description: "Seconds to wait before retrying. A hint, not a promise."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of the request."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
   parameters:
     ValidatorId:
       name: id
@@ -3285,3 +3350,37 @@ components:
         "application/json":
           schema:
             "$ref": "#/components/schemas/DelegatorsUnavailable"
+    ScoreUnavailable:
+      description: "The first score set since the service started is not computed yet. Wait `Retry-After` seconds."
+      headers:
+        Retry-After:
+          "$ref": "#/components/headers/Retry-After"
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/ScoreUnavailable"
+    DecentralizationUnavailable:
+      description: "The first score set since the service started is not computed yet. Wait `Retry-After` seconds."
+      headers:
+        Retry-After:
+          "$ref": "#/components/headers/Retry-After"
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/DecentralizationUnavailable"

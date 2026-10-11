@@ -14,7 +14,7 @@ This page summarizes what the response itself states.
 | Scale | `value`, 0 to 100 |
 | Window | The last 7 days: `coverage.windowMs` is 604800000 |
 | Set | The validators that receive a score: `scoredSetSize`. A withheld validator is not in it, so one that has left the consensus set neither gets a percentile nor moves anyone else's |
-| Recomputed | At most every 10 minutes: `computedAt` |
+| Recomputed | Every 10 minutes, behind the set being served: `computedAt` |
 | Method | `configVersion` (`v3` at the time of writing) and `methodVersion` (`crisp-point-1`) |
 
 ## Factors

@@ -83,7 +83,7 @@ curl -s https://api.zim.one/v1/validator/109/score | jq '{value, confidence, cov
 ```
 
 Read `confidence` and `coverage` next to `value`.
-`computedAt` says when the score was computed; it is recomputed at most every 10 minutes.
+`computedAt` says when the score set was computed. The set is computed again every 10 minutes, behind the one being served, so it is normally at most about 10 minutes plus one computation old.
 
 ## Reading the data
 
@@ -203,12 +203,12 @@ curl -s https://api.zim.one/v1/openapi.json | jq -r '.openapi, .info.version, .s
 
 ## Verify a release
 
-This README describes release `v1.0.0-beta.1`.
+This README describes release `v1.0.0-beta.2`.
 Its date is in [CHANGELOG.md](CHANGELOG.md); while the changelog says `unreleased`, there is nothing to download yet.
 Each release carries `openapi.yaml`, a `SHA256SUMS` file and a build provenance attestation for both.
 
 ```sh
-gh release download v1.0.0-beta.1 --repo zimone91/monad-monitor-api --pattern openapi.yaml --pattern SHA256SUMS
+gh release download v1.0.0-beta.2 --repo zimone91/monad-monitor-api --pattern openapi.yaml --pattern SHA256SUMS
 sha256sum -c SHA256SUMS
 gh attestation verify openapi.yaml --repo zimone91/monad-monitor-api
 ```

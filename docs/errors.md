@@ -18,15 +18,17 @@ The body is `{"error":"<reason>", …, "time":"…"}`.
 | 400 | `invalid network` | | `network` is a value this API does not know |
 | 400 | `invalid time` | `param`: `from` or `to` | `GET /validator/{id}/series`: `from` or `to` cannot be parsed or is out of range |
 | 400 | `unsupported network` | `network`, `supported` | `network=testnet`: only `mainnet` is served under `/v1` |
-| 404 | `validator not found` | `network`, `validatorId` | `GET /validator/{id}`, `/score` and `/delegators`: the indexer does not know this id. For `/delegators` also when the chain lists no such validator |
+| 404 | `validator not found` | `network`, `validatorId` | `GET /validator/{id}`, `/score` and `/delegators`: the indexer does not know this id. For `/delegators` also when the chain listed no such validator at the first reading |
 | 404 | `unknown validator` | | `GET /validator/{id}/slots`: the indexer does not know this id |
 | 404 | `no logo` | `network`, `validatorId` | `GET /validator/{id}/logo`: the registry lists no logo |
 | 429 | `rate limit exceeded` | `limitClass`, `retryAfterSec` | Over budget; see [rate limits](rate-limits.md) |
 | 503 | `delegators unavailable` | `reason`, `retryAfterSec`, `network`, `validatorId` | `GET /validator/{id}/delegators`: no list to give right now; see below |
+| 503 | `score unavailable` | `reason`, `retryAfterSec`, `network`, `validatorId` | `GET /validator/{id}/score`: the service has started, and its first score set is not computed yet; see below |
+| 503 | `decentralization unavailable` | `reason`, `retryAfterSec`, `network` | `GET /network/decentralization`: the same cause as `score unavailable`; see below |
 
 ## `503` from `/delegators`
 
-The delegator list is read from the chain on demand, not from the indexer's tables, and kept for 10 minutes.
+The delegator list is read from the chain on demand, not from the indexer's tables, and read again once it is 10 minutes old (see [time fields](time-fields.md)).
 When there is no list to give, the route answers `503 delegators unavailable`.
 The `Retry-After` header and `retryAfterSec` in the body carry the same number of seconds to wait.
 
@@ -36,11 +38,17 @@ The `Retry-After` header and `retryAfterSec` in the body carry the same number o
 | `busy` | Too many readings are queued, so this one was not started. |
 | `rpc-failed` | The chain reads failed. |
 
-A `404` from this route means what it says: the indexer does not know the id, or the chain lists no such validator.
+A `404` from this route means what it says: the indexer does not know the id, or the chain listed no such validator at the first reading. A list once held is not removed when a later reading finds no such validator.
 
 ```sh
 curl -s -D - -o /dev/null 'https://api.zim.one/v1/validator/109/delegators?limit=1' | grep -iE '^(HTTP|retry-after)'
 ```
+
+## `503` from `/score` and `/network/decentralization`
+
+The score is computed for the whole set every 10 minutes, behind the set being served.
+Only in the first seconds after the service starts is there no set yet: until the first one is computed, both routes answer `503` with `reason: "building"`.
+The computation keeps running, so a retry after `Retry-After` seconds is answered from it.
 
 These are not errors:
 

@@ -35,7 +35,7 @@ The body has no assembly time: date its readings by `snapshot.ts`, `liveness.upd
 
 | Field | Clock |
 |---|---|
-| `computedAt` | When the whole set was scored. The result is kept for 10 minutes; the next request after that waits for a new computation. `computedAt` is therefore at most about 10 minutes older than `time`. |
+| `computedAt` | When the score set was computed. The set is computed again every 10 minutes, behind the one being served, so no request waits for a computation. `computedAt` is normally at most about 10 minutes plus one computation older than `time`. When a computation fails, the previous set stays served, and `computedAt` shows how old it is. |
 | `currentState` | The liveness verdict at `computedAt`, not at `time`. For the verdict now, read `liveness.state` in `GET /validator/{id}`. |
 | `sourceChangedAt` | When the measurement behind the `reliability` factor last changed on this network. Present when `configVersion` is `v3`. |
 | `coverage.gaps[].startMs`, `coverage.gaps[].endMs` | Start and end of each indexer blind spot inside the 7-day window. Unix milliseconds. |
@@ -65,7 +65,7 @@ When the window reaches the present, the last bucket is still filling.
 
 | Field | Clock |
 |---|---|
-| `fetchedAt` | When this list was read from the chain. A list is kept for 10 minutes; an older list is served while a new read runs, so `fetchedAt` can be older than 10 minutes. |
+| `fetchedAt` | When this list was read from the chain. A list older than 10 minutes is served at once while a new reading runs behind it. Past 30 minutes the new reading runs first, and the request waits for it, up to 10 seconds, when it can finish in that time; otherwise the older list is served, so `fetchedAt` can be older than 30 minutes. |
 
 ## `GET /validator/{id}/events`
 
@@ -77,7 +77,7 @@ When the window reaches the present, the last bucket is still filling.
 
 | Field | Clock |
 |---|---|
-| `computedAt` | When the whole set was computed. Kept for 10 minutes, like the score. |
+| `computedAt` | When the score set these facts use was computed: the same instant as `computedAt` of `GET /validator/{id}/score`. The stake and geolocation data were read at most 10 minutes before the response. |
 
 ## `GET /health` and `GET /health/indexer`
 

@@ -59,7 +59,7 @@ retry-after: 37
 1. Wait `Retry-After` seconds before the next request in that class.
 2. If another `429` follows, double the wait each time and add random jitter.
 3. Pace requests by `RateLimit-Remaining` and `RateLimit-Reset` instead of waiting for a `429`.
-4. Cache on your side. Data routes send `Cache-Control: public, max-age=60`. The indexer runs every 5 minutes, and the score, network concentration and delegator lists are recomputed at most every 10 minutes.
+4. Cache on your side. Data routes send `Cache-Control: public, max-age=60`. The indexer runs every 5 minutes. The score set is computed again every 10 minutes, network concentration follows it, and a delegator list is read again once it is 10 minutes old.
 
 ## Check your budget without a burst
 

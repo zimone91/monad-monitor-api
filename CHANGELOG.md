@@ -5,6 +5,19 @@ The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2026-10-11
+
+### Added
+
+- `503 score unavailable` from `GET /validator/{id}/score` and `503 decentralization unavailable` from `GET /network/decentralization`, with `reason: "building"` and `Retry-After`: in the first seconds after the service starts, before its first score set is computed.
+
+### Changed
+
+- The score set is computed again every 10 minutes, behind the set being served, so a request no longer waits for a computation. `computedAt` is normally at most about 10 minutes plus one computation old. When a computation fails, the previous set stays served, and `computedAt` shows how old it is.
+- `computedAt` of `GET /network/decentralization` is the time of the score set its delegation program verdicts come from: the same instant as the score's `computedAt`. Its stake and geolocation data are read at most 10 minutes before the response.
+- `GET /validator/{id}/delegators` serves a list older than 10 minutes at once while a new reading runs behind it. Past 30 minutes the new reading runs first, and the request waits for it, up to 10 seconds, when it can finish in that time; otherwise the older list is served with its own `fetchedAt`.
+- `GET /validator/{id}/delegators` answers `404` for a validator the chain does not list at the first reading only. A list once held is not removed when a later reading finds no such validator.
+
 ## [1.0.0-beta.1] - 2026-09-29
 
 First public beta.
