@@ -3,7 +3,7 @@
 openapi: "3.1.0"
 info:
   title: "Monad Monitor API"
-  version: "1.0.0-beta.2"
+  version: "1.0.0-beta.3"
   description: "Read-only API for Monad validator data. Every reading carries its own timestamp, and every JSON response carries `time`, the moment it was generated. Beta, no SLA. Independent project, not affiliated with the Monad Foundation."
   license:
     name: MIT
@@ -350,6 +350,50 @@ paths:
           "$ref": "#/components/responses/InternalError"
         "503":
           "$ref": "#/components/responses/ScoreUnavailable"
+  "/validator/{id}/record":
+    get:
+      operationId: getValidatorRecord
+      tags:
+        - validators
+      summary: "Get the reliability record (method v4)"
+      description: "The v4 index of one validator, 0 to 100, over the last 30 days, with the points each of its five parts lost and the evidence behind them: absence, own block slots that timed out, lateness at hard forks, VDP strikes and commission behavior. Until the method is published the record is a shadow: `stage` is `shadow` and every record field is null, so a client can be ready for it before it is shown. Show it only when `stage` is `published`; until then the reliability score is the one to show. The record of the whole network is built every hour.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/ValidatorId"
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The record."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ValidatorRecord"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-11-05T03:30:57Z"
+                  description: "curl -sS 'https://api.zim.one/v1/validator/109/record?network=mainnet'; not truncated"
+                  value:
+                    methodVersion: index-4.0
+                    stage: shadow
+                    network: mainnet
+                    validatorId: "109"
+                    builtAt: null
+                    mode: null
+                    window: null
+                    value: null
+                    display: null
+                    rank: null
+                    rankedValidators: null
+                    unrated: null
+                    penalty: null
+                    capApplied: null
+                    components: null
+                    time: "2026-11-05T03:30:58.120Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
   "/validator/{id}/slots":
     get:
       operationId: getValidatorSlots
@@ -1000,6 +1044,45 @@ paths:
           "$ref": "#/components/responses/InternalError"
         "503":
           "$ref": "#/components/responses/DecentralizationUnavailable"
+  "/network/record":
+    get:
+      operationId: getNetworkRecord
+      tags:
+        - network
+      summary: "Get the network's reliability record (method v4)"
+      description: "The v4 record of the whole network over the last 30 days: the window and how much of it was observed, the upgrade windows with the restart time each excuses, network-wide stalls, and one row per validator with its index, rank and the points each part lost. Until the method is published the record is a shadow: `stage` is `shadow` and every record field is null, so a client can be ready for it before it is shown. Show it only when `stage` is `published`; until then the reliability score is the one to show. It is built every hour.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      parameters:
+        - "$ref": "#/components/parameters/Network"
+      responses:
+        "200":
+          description: "The record."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/NetworkRecord"
+              examples:
+                live:
+                  summary: "Live response, captured 2026-11-05T03:30:58Z"
+                  description: "curl -sS 'https://api.zim.one/v1/network/record?network=mainnet'; not truncated"
+                  value:
+                    methodVersion: index-4.0
+                    stage: shadow
+                    network: mainnet
+                    builtAt: null
+                    mode: null
+                    window: null
+                    memory: null
+                    coverage: null
+                    upgradeWindows: null
+                    stalls: null
+                    validators: null
+                    time: "2026-11-05T03:30:58.380Z"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "429":
+          "$ref": "#/components/responses/TooManyRequests"
+        "500":
+          "$ref": "#/components/responses/InternalError"
   "/health":
     get:
       operationId: getHealth
@@ -2354,6 +2437,477 @@ components:
         selfObservationHole:
           type: boolean
           description: "Same meaning as the top-level field."
+    RecordWindow:
+      type: object
+      description: "A window of time, its start included and its end excluded."
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: "Start of the window (UTC)."
+        end:
+          type: string
+          format: date-time
+          description: "End of the window (UTC)."
+    RecordEvidence:
+      type: object
+      description: "One fact behind the record: an absence, a restart in an upgrade window, a verdict at a hard fork, a week of VDP strikes, a commission change, a network stall."
+      required:
+        - kind
+        - at
+        - until
+        - detail
+      properties:
+        kind:
+          type: string
+          description: "What the fact is, such as `absence`, `upgrade-restart`, `fork`, `upgrade-window`, `week`, `commission-hike`, `commission-cut` or `network-stall`."
+        at:
+          type: string
+          format: date-time
+          description: "When it starts (UTC)."
+        until:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: "When it ends (UTC). Null for a moment, or for an absence that has not ended."
+        detail:
+          type: object
+          description: "Its numbers and labels. The keys depend on `kind`."
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+              - "null"
+    RecordComponent:
+      type: object
+      description: "One part of the index over its own window."
+      required:
+        - penalty
+        - pointsLost
+        - reason
+        - window
+        - measures
+        - evidence
+      properties:
+        penalty:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          description: "The part's penalty, 0 or more. Null when the part could not be measured: the index is then unrated, never scored over missing data."
+        pointsLost:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          description: "The index points this part lost: its share of the penalty, and what a ceiling it set took on top. Over the five parts they add up to 100 minus `value`. Null when the validator is unrated."
+        reason:
+          type:
+            - string
+            - "null"
+          description: "Why the part is null, or a note on how it was measured."
+        window:
+          allOf:
+            - "$ref": "#/components/schemas/RecordWindow"
+          description: "The window this part looks at: the 30 days, or 90 days for VDP strikes and commission."
+        measures:
+          type: object
+          description: "The numbers behind the penalty, such as hours of absence or the count of episodes."
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+              - "null"
+        evidence:
+          type: array
+          items:
+            "$ref": "#/components/schemas/RecordEvidence"
+          description: "The facts behind the penalty."
+    RecordComponents:
+      type: object
+      description: "The five parts of the index."
+      required:
+        - V
+        - S
+        - U
+        - K
+        - C
+      properties:
+        V:
+          allOf:
+            - "$ref": "#/components/schemas/RecordComponent"
+          description: "Absence: time out of the network and the episodes of it. Restarts in an upgrade window are excused up to the window's norm."
+        S:
+          allOf:
+            - "$ref": "#/components/schemas/RecordComponent"
+          description: "Own block slots that timed out, above the network median."
+        U:
+          allOf:
+            - "$ref": "#/components/schemas/RecordComponent"
+          description: "Upgrades: lateness at the hard forks that enforce mandatory releases."
+        K:
+          allOf:
+            - "$ref": "#/components/schemas/RecordComponent"
+          description: "VDP strikes: weeks that both public VDP trackers flag, over 90 days."
+        C:
+          allOf:
+            - "$ref": "#/components/schemas/RecordComponent"
+          description: "Commission behavior over 90 days: rises, quick reversals and large jumps. The level itself carries no points."
+    RecordCap:
+      type: object
+      description: "A ceiling on the index, set by one part's finding."
+      required:
+        - part
+        - limit
+        - label
+      properties:
+        part:
+          type: string
+          enum:
+            - V
+            - S
+            - U
+            - K
+            - C
+          description: "The part whose finding set the ceiling."
+        limit:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: "The highest value the index may take."
+        label:
+          type: string
+          description: "What set the ceiling."
+    RecordPointsLost:
+      type: object
+      description: "The index points each part lost."
+      required:
+        - V
+        - S
+        - U
+        - K
+        - C
+      properties:
+        V:
+          type: number
+          minimum: 0
+        S:
+          type: number
+          minimum: 0
+        U:
+          type: number
+          minimum: 0
+        K:
+          type: number
+          minimum: 0
+        C:
+          type: number
+          minimum: 0
+    RecordCoverage:
+      type: object
+      description: "Epochs of the window that were observed whole, against all the epochs of the window except the one in progress."
+      required:
+        - certified
+        - total
+      properties:
+        certified:
+          type: integer
+          minimum: 0
+          description: "Epochs observed whole."
+        total:
+          type: integer
+          minimum: 0
+          description: "Epochs of the window."
+    RecordUpgradeWindow:
+      type: object
+      description: "An upgrade window and the restart time it excuses per validator."
+      required:
+        - id
+        - open
+        - close
+        - medianSec
+        - normSec
+        - validators
+      properties:
+        id:
+          type: string
+          description: "The window's id, such as `M2`."
+        open:
+          type: string
+          format: date-time
+          description: "The first invitation to upgrade (UTC)."
+        close:
+          type: string
+          format: date-time
+          description: "The deadline the source names, or else the last invitation plus 48 hours (UTC)."
+        medianSec:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          description: "Median total restart time, in seconds, over the validators whose restarts this window holds. Null when it holds none."
+        normSec:
+          type: number
+          minimum: 0
+          description: "Restart time excused per validator, in seconds: twice the larger of the forecast and the median. Time beyond it counts as absence."
+        validators:
+          type: integer
+          minimum: 0
+          description: "Validators with a restart in this window."
+    RecordValidatorRow:
+      type: object
+      description: "One validator's line in the network record."
+      required:
+        - validatorId
+        - value
+        - display
+        - rank
+        - unrated
+        - penalty
+        - capApplied
+        - pointsLost
+      properties:
+        validatorId:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Validator id, decimal string."
+        value:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 100
+          description: "The index, 0 to 100, not rounded: 100 × e^(−`penalty`), then any ceiling. Null when the validator is unrated."
+        display:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 100
+          description: "The index to show, to one decimal. 100 only for a window with no flaw and no ceiling; below 0.05 it shows as 0.0. Null when the validator is unrated."
+        rank:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+          description: "Rank among the rated validators, 1 the best, by the unrounded index, then less absence, then fewer timeouts. Equal on all three, two validators share a rank. Null when the validator is unrated."
+        unrated:
+          type:
+            - string
+            - "null"
+          description: "Why the validator has no index: fewer than 14 active days in the window, epoch coverage below 90 %, or a part that could not be measured. Null when it has one."
+        penalty:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          description: "The sum of the five parts' penalties. Null when the validator is unrated."
+        capApplied:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordCap"
+            - type: "null"
+          description: "The ceiling that lowered the index, if any."
+        pointsLost:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordPointsLost"
+            - type: "null"
+          description: "The index points each part lost. Null when the validator is unrated."
+    ValidatorRecord:
+      type: object
+      description: "Reliability record of one validator under the v4 method, over the last 30 days."
+      required:
+        - methodVersion
+        - stage
+        - network
+        - validatorId
+        - builtAt
+        - mode
+        - window
+        - value
+        - display
+        - rank
+        - rankedValidators
+        - unrated
+        - penalty
+        - capApplied
+        - components
+        - time
+      properties:
+        methodVersion:
+          type: string
+          description: "The method and its version, such as `index-4.0`. Its prices are fixed under a version; a change of method is a new version."
+        stage:
+          type: string
+          enum:
+            - shadow
+            - published
+          description: "`shadow`: the method is still being checked against the data, and every record field of this body is null. `published`: the record is the one to show. Show the record only when `stage` is `published`."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this record."
+        validatorId:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Validator id, decimal string."
+        builtAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: "When the record served was built (UTC). It is built again every hour."
+        mode:
+          type:
+            - string
+            - "null"
+          enum:
+            - slots
+            - votes
+            - null
+          description: "How absence is measured. `slots`: by the validator's own block slots and timeouts. `votes`: by its votes in the certificate of every round."
+        window:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordWindow"
+            - type: "null"
+          description: "The 30 days the index covers."
+        value:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 100
+          description: "The index, 0 to 100, not rounded: 100 × e^(−`penalty`), then any ceiling. Null when the validator is unrated."
+        display:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          maximum: 100
+          description: "The index to show, to one decimal. 100 only for a window with no flaw and no ceiling; below 0.05 it shows as 0.0. Null when the validator is unrated."
+        rank:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+          description: "Rank among the rated validators, 1 the best, by the unrounded index, then less absence, then fewer timeouts. Equal on all three, two validators share a rank. Null when the validator is unrated."
+        rankedValidators:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          description: "How many validators have a rank."
+        unrated:
+          type:
+            - string
+            - "null"
+          description: "Why the validator has no index: fewer than 14 active days in the window, epoch coverage below 90 %, or a part that could not be measured. Null when it has one."
+        penalty:
+          type:
+            - number
+            - "null"
+          minimum: 0
+          description: "The sum of the five parts' penalties. Null when the validator is unrated."
+        capApplied:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordCap"
+            - type: "null"
+          description: "The ceiling that lowered the index, if any."
+        components:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordComponents"
+            - type: "null"
+          description: "The five parts, each with its penalty, the points it lost and the evidence behind them."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    NetworkRecord:
+      type: object
+      description: "Reliability record of the whole network under the v4 method, over the last 30 days."
+      required:
+        - methodVersion
+        - stage
+        - network
+        - builtAt
+        - mode
+        - window
+        - memory
+        - coverage
+        - upgradeWindows
+        - stalls
+        - validators
+        - time
+      properties:
+        methodVersion:
+          type: string
+          description: "The method and its version, such as `index-4.0`. Its prices are fixed under a version; a change of method is a new version."
+        stage:
+          type: string
+          enum:
+            - shadow
+            - published
+          description: "`shadow`: the method is still being checked against the data, and every record field of this body is null. `published`: the record is the one to show. Show the record only when `stage` is `published`."
+        network:
+          allOf:
+            - "$ref": "#/components/schemas/NetworkName"
+          description: "Network of this record."
+        builtAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: "When the record served was built (UTC). It is built again every hour."
+        mode:
+          type:
+            - string
+            - "null"
+          enum:
+            - slots
+            - votes
+            - null
+          description: "How absence is measured. `slots`: by the validator's own block slots and timeouts. `votes`: by its votes in the certificate of every round."
+        window:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordWindow"
+            - type: "null"
+          description: "The 30 days the index covers."
+        memory:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordWindow"
+            - type: "null"
+          description: "The 90 days that VDP strikes and commission behavior look back over."
+        coverage:
+          anyOf:
+            - "$ref": "#/components/schemas/RecordCoverage"
+            - type: "null"
+          description: "How much of the window was observed whole."
+        upgradeWindows:
+          type:
+            - array
+            - "null"
+          items:
+            "$ref": "#/components/schemas/RecordUpgradeWindow"
+          description: "The upgrade windows that overlap the 30 days, with the restart time each excuses. Null when absence and upgrades are not measured: no valid upgrade ledger, or data that starts too late."
+        stalls:
+          type:
+            - array
+            - "null"
+          items:
+            "$ref": "#/components/schemas/RecordEvidence"
+          description: "Network-wide stalls in the window: runs of consecutive timed-out rounds under at least four different leaders. Their time is charged to no validator."
+        validators:
+          type:
+            - array
+            - "null"
+          items:
+            "$ref": "#/components/schemas/RecordValidatorRow"
+          description: "One row per validator in the active set during the window."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
     ValidatorSlots:
       type: object
       description: "Leader-slot ledger of one validator, from this service's observation of consensus rounds."

@@ -1,0 +1,18 @@
+{
+  "methodVersion": "index-4.0",
+  "stage": "shadow",
+  "network": "mainnet",
+  "validatorId": "109",
+  "builtAt": null,
+  "mode": null,
+  "window": null,
+  "value": null,
+  "display": null,
+  "rank": null,
+  "rankedValidators": null,
+  "unrated": null,
+  "penalty": null,
+  "capApplied": null,
+  "components": null,
+  "time": "2026-11-05T03:30:58.120Z"
+}

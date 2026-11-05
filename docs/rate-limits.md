@@ -6,7 +6,7 @@ Every public route is rate-limited per client IP address, in fixed 60-second win
 
 | Class | Requests per 60 s | Routes |
 |---|---|---|
-| `heavy` | 120 | `GET /validators`, `GET /validator/{id}`, `GET /validator/{id}/score`, `GET /validator/{id}/slots`, `GET /validator/{id}/series`, `GET /validator/{id}/delegators`, `GET /network/decentralization` |
+| `heavy` | 120 | `GET /validators`, `GET /validator/{id}`, `GET /validator/{id}/score`, `GET /validator/{id}/slots`, `GET /validator/{id}/series`, `GET /validator/{id}/delegators`, `GET /network/decentralization`, `GET /validator/{id}/record`, `GET /network/record` |
 | `standard` | 300 | `GET /validator/{id}/events`, `GET /health`, `GET /health/indexer`, `GET /openapi.json`, unknown paths |
 | `logo` | 600 | `GET /validator/{id}/logo` |
 

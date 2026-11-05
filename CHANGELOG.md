@@ -5,6 +5,15 @@ The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+## [1.0.0-beta.3] - 2026-11-05
+
+### Added
+
+- `GET /validator/{id}/record`: the v4 index of one validator, 0 to 100, over the last 30 days, with the points each of its five parts lost and the evidence behind them.
+- `GET /network/record`: the v4 record of the whole network over the last 30 days, with one row per validator. It is built every hour.
+- Both are in shadow until the method is published: `stage` is `shadow`, `methodVersion` is `index-4.0`, and every record field is `null`. The keys are the published ones already, so a client can be ready before the record is shown. Show it only when `stage` is `published`; until then the reliability score is the one to show.
+- Both routes are `heavy` and answer `Cache-Control: public, max-age=60`.
+
 ## [1.0.0-beta.2] - 2026-10-11
 
 ### Added

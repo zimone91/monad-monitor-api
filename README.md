@@ -36,18 +36,21 @@ https://api.zim.one/v1
 | List validators | `GET /validators` | | heavy |
 | Validator overview | `GET /validator/{id}` | | heavy |
 | Reliability score | `GET /validator/{id}/score` | | heavy |
+| Reliability record (method v4), in shadow | `GET /validator/{id}/record` | | heavy |
 | Slot ledger | `GET /validator/{id}/slots` | `epochs`, 1 to 200, default about 7 days of epochs | heavy |
 | Time series | `GET /validator/{id}/series` | `metric` (`production` by default, or `reward`), `bucket` (`1h`, `1d` by default, or `1w`), `from`, `to` | heavy |
 | Top delegators | `GET /validator/{id}/delegators` | `limit`, 1 to 50, default 10 | heavy |
 | Liveness events | `GET /validator/{id}/events` | `limit`, 1 to 200, default 50 | standard |
 | Logo | `GET /validator/{id}/logo` | | logo |
 | Network concentration | `GET /network/decentralization` | | heavy |
+| Network reliability record (method v4), in shadow | `GET /network/record` | | heavy |
 | Service health | `GET /health` | | standard |
 | Data freshness | `GET /health/indexer` | | standard |
 
 - `{id}` is a decimal validator id.
 - `network` is `mainnet`, on every route except `/health` and `/health/indexer`. It is the default, so it can be left out. `network=testnet` returns `400 unsupported network`: testnet is not indexed, and an empty list is not an answer about a network.
 - Responses are JSON, except the logo, which is an image (PNG, JPEG, GIF or WebP).
+- `GET /validator/{id}/record` and `GET /network/record` are in shadow. `stage` is `"shadow"` and every record field is `null` until the record is published; the keys are the published ones already.
 - CORS is open: `Access-Control-Allow-Origin: *`.
 - The OpenAPI 3.1 document is served at `https://api.zim.one/v1/openapi.json`. It is the contract alone: paths, schemas, parameters, responses and headers, with no examples.
 - [`openapi/openapi.yaml`](openapi/openapi.yaml) is the same contract with the captured example responses attached, and [`examples/`](examples/) holds those responses as separate files, each with its command and UTC capture time.
@@ -203,12 +206,12 @@ curl -s https://api.zim.one/v1/openapi.json | jq -r '.openapi, .info.version, .s
 
 ## Verify a release
 
-This README describes release `v1.0.0-beta.2`.
+This README describes release `v1.0.0-beta.3`.
 Its date is in [CHANGELOG.md](CHANGELOG.md); while the changelog says `unreleased`, there is nothing to download yet.
 Each release carries `openapi.yaml`, a `SHA256SUMS` file and a build provenance attestation for both.
 
 ```sh
-gh release download v1.0.0-beta.2 --repo zimone91/monad-monitor-api --pattern openapi.yaml --pattern SHA256SUMS
+gh release download v1.0.0-beta.3 --repo zimone91/monad-monitor-api --pattern openapi.yaml --pattern SHA256SUMS
 sha256sum -c SHA256SUMS
 gh attestation verify openapi.yaml --repo zimone91/monad-monitor-api
 ```
@@ -219,7 +222,7 @@ Budgets are counted per client IP address, in fixed 60-second windows.
 
 | Class | Requests per minute | Routes |
 |---|---|---|
-| `heavy` | 120 | `/validators`, `/validator/{id}`, `/validator/{id}/score`, `/validator/{id}/slots`, `/validator/{id}/series`, `/validator/{id}/delegators`, `/network/decentralization` |
+| `heavy` | 120 | `/validators`, `/validator/{id}`, `/validator/{id}/score`, `/validator/{id}/slots`, `/validator/{id}/series`, `/validator/{id}/delegators`, `/network/decentralization`, `/validator/{id}/record`, `/network/record` |
 | `standard` | 300 | `/validator/{id}/events`, `/health`, `/health/indexer`, `/openapi.json` |
 | `logo` | 600 | `/validator/{id}/logo` |
 
