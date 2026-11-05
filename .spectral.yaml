@@ -107,4 +107,4 @@ rules:
       field: "@key"
       function: pattern
       functionOptions:
-        match: "^/(validators|validator/\\{id\\}(/(score|slots|series|delegators|events|logo))?|network/decentralization|health(/indexer)?)$"
+        match: "^/(validators|validator/\\{id\\}(/(score|slots|series|delegators|events|logo|record))?|network/(decentralization|record)|health(/indexer)?)$"
