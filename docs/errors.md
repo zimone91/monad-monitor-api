@@ -17,6 +17,7 @@ The body is `{"error":"<reason>", …, "time":"…"}`.
 | 400 | `invalid validator id` | | `{id}` is not a decimal integer, or is above 9223372036854775807 |
 | 400 | `invalid network` | | `network` is a value this API does not know |
 | 400 | `invalid time` | `param`: `from` or `to` | `GET /validator/{id}/series`: `from` or `to` cannot be parsed or is out of range |
+| 400 | `invalid size` | | `GET /validator/{id}/logo`: `size` is any value other than `128` |
 | 400 | `unsupported network` | `network`, `supported` | `network=testnet`: only `mainnet` is served under `/v1` |
 | 404 | `validator not found` | `network`, `validatorId` | `GET /validator/{id}`, `/score` and `/delegators`: the indexer does not know this id. For `/delegators` also when the chain listed no such validator at the first reading |
 | 404 | `unknown validator` | | `GET /validator/{id}/slots`: the indexer does not know this id |

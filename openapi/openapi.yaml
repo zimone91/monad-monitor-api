@@ -755,10 +755,18 @@ paths:
       tags:
         - validators
       summary: "Get the validator logo"
-      description: "The logo listed in the public validator registry, fetched and cached by this service and served from its own origin as PNG, JPEG, GIF or WebP. 404 when the registry lists no logo or it could not be fetched.\n\nCache: `public, max-age=86400`. Rate class logo: 600 requests per minute."
+      description: "The logo listed in the public validator registry, fetched and cached by this service and served from its own origin as PNG, JPEG, GIF or WebP. 404 when the registry lists no logo or it could not be fetched.\n\nWith `size=128`: a PNG thumbnail of that logo, at most 128 pixels on each side, cropped to the center and never enlarged. When no thumbnail can be made from the logo, the response is the logo itself.\n\nEvery 200 carries an `ETag` of its bytes. A request whose `If-None-Match` names that tag gets 304 with no body.\n\nCache: `public, max-age=86400`. Rate class logo: 600 requests per minute."
       parameters:
         - "$ref": "#/components/parameters/ValidatorId"
         - "$ref": "#/components/parameters/Network"
+        - name: size
+          in: query
+          required: false
+          description: "Thumbnail size in pixels. The only value is `128`; any other value answers 400 `invalid size`. Without it, the logo as the registry lists it."
+          schema:
+            type: integer
+            enum:
+              - 128
       responses:
         "200":
           description: "The logo image."
@@ -771,6 +779,8 @@ paths:
               "$ref": "#/components/headers/RateLimit-Reset"
             Cache-Control:
               "$ref": "#/components/headers/Cache-Control"
+            ETag:
+              "$ref": "#/components/headers/ETag"
           content:
             "image/png":
               schema:
@@ -788,6 +798,19 @@ paths:
               schema:
                 type: string
                 format: binary
+        "304":
+          description: "Not modified: `If-None-Match` names the current tag. No body."
+          headers:
+            RateLimit-Limit:
+              "$ref": "#/components/headers/RateLimit-Limit"
+            RateLimit-Remaining:
+              "$ref": "#/components/headers/RateLimit-Remaining"
+            RateLimit-Reset:
+              "$ref": "#/components/headers/RateLimit-Reset"
+            Cache-Control:
+              "$ref": "#/components/headers/Cache-Control"
+            ETag:
+              "$ref": "#/components/headers/ETag"
         "400":
           "$ref": "#/components/responses/BadRequest"
         "404":
@@ -1200,7 +1223,7 @@ components:
       properties:
         error:
           type: string
-          description: "Reason: `invalid validator id`, `invalid network`, `unsupported network` or `invalid time`."
+          description: "Reason: `invalid validator id`, `invalid network`, `unsupported network`, `invalid time` or `invalid size`."
         param:
           type: string
           description: "With `invalid time` only: the parameter that was not a usable time."
@@ -3824,9 +3847,13 @@ components:
       description: "Caching directive: `public, max-age=60` on 200 responses of data routes, `public, max-age=86400` on the logo, `no-store` on health routes and on every error."
       schema:
         type: string
+    ETag:
+      description: "Tag of the image bytes. Sent back as `If-None-Match`, it gets 304 while the image is unchanged."
+      schema:
+        type: string
   responses:
     BadRequest:
-      description: "Invalid parameter: the validator id, the network, or (series only) `from` or `to`."
+      description: "Invalid parameter: the validator id, the network, (series only) `from` or `to`, or (logo only) `size`."
       headers:
         RateLimit-Limit:
           "$ref": "#/components/headers/RateLimit-Limit"

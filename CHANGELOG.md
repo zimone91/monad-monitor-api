@@ -5,6 +5,13 @@ The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+The API has served these changes since 2026-11-08, with `info.version` still `1.0.0-beta.3`. The next release names a new version.
+
+### Added
+
+- `GET /validator/{id}/logo?size=128`: a PNG thumbnail of the logo, at most 128 pixels on each side, cropped to the center and never enlarged. When no thumbnail can be made from the logo, the response is the logo itself. Any other `size` answers `400 invalid size`.
+- Every `200` of `GET /validator/{id}/logo` carries an `ETag` of its bytes. A request whose `If-None-Match` names that tag gets `304` with no body.
+
 ## [1.0.0-beta.3] - 2026-11-05
 
 ### Added
