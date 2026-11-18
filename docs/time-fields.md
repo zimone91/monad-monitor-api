@@ -16,6 +16,9 @@ Most strings carry milliseconds; `sourceChangedAt` and `builtAt` may not, so par
 |---|---|
 | `time` | When this response was generated, by the server clock. Present on every JSON body, errors included. `/v1/openapi.json` carries none. |
 
+`GET /validators` and `GET /validator/{id}/series` hold their answers: the list is served for up to 60 seconds after it was read, and a series for up to 120 seconds.
+Their data can be that much older than `time`.
+
 ## `GET /validator/{id}`
 
 | Field | Clock |
@@ -53,7 +56,7 @@ The body has no assembly time: date its readings by `snapshot.ts`, `liveness.upd
 
 | Field | Clock |
 |---|---|
-| `from`, `to` | The window the response covers. Defaults: 24 hours for `bucket=1h`, 7 days for `1d`, 12 weeks for `1w`, ending now. `1d` and `1w` reach back at most 90 days. |
+| `from`, `to` | The window the response covers. An explicit `from` or `to` is floored to the whole minute. Defaults: 24 hours for `bucket=1h`, 7 days for `1d`, 12 weeks for `1w`, ending at the time of the read. `1d` and `1w` reach back at most 90 days. |
 | `points[].ts` | Start of the bucket: the UTC hour, the UTC day, or Monday 00:00 UTC. Blocks are placed by their estimated time, as in `lastProduction.ts`. |
 
 `from` and `to` accept Unix milliseconds or an ISO 8601 date, from 1970-01-01T00:00:00.000Z through 9999-12-31T23:59:59.999Z.

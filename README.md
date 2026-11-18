@@ -206,12 +206,12 @@ curl -s https://api.zim.one/v1/openapi.json | jq -r '.openapi, .info.version, .s
 
 ## Verify a release
 
-This README describes release `v1.0.0-beta.3`.
+This README describes release `v1.0.0-beta.4`.
 Its date is in [CHANGELOG.md](CHANGELOG.md); while the changelog says `unreleased`, there is nothing to download yet.
 Each release carries `openapi.yaml`, a `SHA256SUMS` file and a build provenance attestation for both.
 
 ```sh
-gh release download v1.0.0-beta.3 --repo zimone91/monad-monitor-api --pattern openapi.yaml --pattern SHA256SUMS
+gh release download v1.0.0-beta.4 --repo zimone91/monad-monitor-api --pattern openapi.yaml --pattern SHA256SUMS
 sha256sum -c SHA256SUMS
 gh attestation verify openapi.yaml --repo zimone91/monad-monitor-api
 ```
@@ -245,6 +245,9 @@ Honor `Retry-After`: wait that many seconds before the next request in that clas
 If `429` repeats, double the wait each time and add random jitter.
 Details: [docs/rate-limits.md](docs/rate-limits.md).
 
+A `503 service busy` asks for the same: wait `Retry-After` seconds.
+Details: [docs/errors.md](docs/errors.md).
+
 ## Data and attribution
 
 - Validator, stake, reward and block data are read from Monad mainnet (chain id 143) through a pool of public RPC endpoints (`rpc.monad.xyz`, `rpc1.monad.xyz`, `rpc2.monad.xyz`, `rpc3.monad.xyz`, `rpc-mainnet.monadinfra.com`), and stored by an indexer the author runs. An endpoint serves the indexer only after a check of its chain id, block freshness and latency.
@@ -258,6 +261,16 @@ Details: [docs/rate-limits.md](docs/rate-limits.md).
 Not verifiable from outside: the API keeps no access logs.
 For a request that fails inside the server, it records the path, the time and the error, never the client address or the query string.
 Client IP addresses serve only as rate-limit keys, are held in memory for at most ten minutes, and are never written to disk.
+
+## Terms of use
+
+The API and its data are provided as is, without warranty of any kind.
+They may be incomplete, wrong, late or unavailable, and ZIM.ONE accepts no liability for any use of them.
+The service is a beta with no SLA: it can be slow, interrupted or stopped.
+Changes to the contract follow [Versioning and deprecation](docs/versioning-and-deprecation.md).
+Nothing here is financial or investment advice.
+A score or reading is this API's own measurement, not a verdict of the Monad Foundation or of anyone else.
+Stay within the rate limits.
 
 ## License
 

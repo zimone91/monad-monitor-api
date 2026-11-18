@@ -3,7 +3,7 @@
 openapi: "3.1.0"
 info:
   title: "Monad Monitor API"
-  version: "1.0.0-beta.3"
+  version: "1.0.0-beta.4"
   description: "Read-only API for Monad validator data. Every reading carries its own timestamp, and every JSON response carries `time`, the moment it was generated. Beta, no SLA. Independent project, not affiliated with the Monad Foundation."
   license:
     name: MIT
@@ -28,7 +28,7 @@ paths:
       tags:
         - validators
       summary: "List validators"
-      description: "All validators this service tracks on the network, ordered by id, as light summaries (at most 500). Validators that have left the consensus set are listed too: entries carry no `status`, and `inConsensus` is `false` for them. Entries carry no observation time of their own: they come from the latest indexer cycle, whose age `GET /health/indexer` reports; `time` is the response time.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      description: "All validators this service tracks on the network, ordered by id, as light summaries (at most 500). Validators that have left the consensus set are listed too: entries carry no `status`, and `inConsensus` is `false` for them. Entries carry no observation time of their own: they come from the latest indexer cycle, whose age `GET /health/indexer` reports; `time` is the response time. The list is read at most every 30 seconds and is served for up to 60 seconds after its read, so it can be up to a minute older than `time`.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
       parameters:
         - "$ref": "#/components/parameters/Network"
       responses:
@@ -92,6 +92,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceBusy"
   "/validator/{id}":
     get:
       operationId: getValidator
@@ -194,6 +196,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceBusy"
   "/validator/{id}/score":
     get:
       operationId: getValidatorScore
@@ -499,13 +503,15 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceBusy"
   "/validator/{id}/series":
     get:
       operationId: getValidatorSeries
       tags:
         - validators
       summary: "Get a production or reward time series"
-      description: "Blocks produced (`metric=production`) or block rewards in wei (`metric=reward`) per hour, UTC day or ISO week, from the block rewards the indexer recorded. There is no separate observation clock: each point is dated by its bucket start `ts`, and data age is reported by `GET /health/indexer`. An unknown validator returns an empty `points` list.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
+      description: "Blocks produced (`metric=production`) or block rewards in wei (`metric=reward`) per hour, UTC day or ISO week, from the block rewards the indexer recorded. There is no separate observation clock: each point is dated by its bucket start `ts`, and data age is reported by `GET /health/indexer`. An unknown validator returns an empty `points` list. Answers are held: one read serves every request with the same parameters for 60 seconds, and while a newer one is read it is served for up to 120 seconds. An explicit `from` or `to` is floored to the whole minute, and the answer's `from` and `to` show the floored values.\n\nCache: `public, max-age=60`. Rate class heavy: 120 requests per minute."
       parameters:
         - "$ref": "#/components/parameters/ValidatorId"
         - "$ref": "#/components/parameters/Network"
@@ -533,13 +539,13 @@ paths:
         - name: from
           in: query
           required: false
-          description: "Window start: Unix time in milliseconds (digits only) or an ISO 8601 date-time. Default: `to` minus 24 hours (`1h`), 7 days (`1d`) or 84 days (`1w`). For `1d` and `1w` the window is limited to the 90 days before `to`. Accepted range: 1970-01-01T00:00:00.000Z (`0`) through 9999-12-31T23:59:59.999Z (`253402300799999`). An empty, unparseable or out-of-range value returns 400 (`invalid time`)."
+          description: "Window start: Unix time in milliseconds (digits only) or an ISO 8601 date-time, floored to the whole minute. Default: `to` minus 24 hours (`1h`), 7 days (`1d`) or 84 days (`1w`). For `1d` and `1w` the window is limited to the 90 days before `to`. Accepted range: 1970-01-01T00:00:00.000Z (`0`) through 9999-12-31T23:59:59.999Z (`253402300799999`). An empty, unparseable or out-of-range value returns 400 (`invalid time`)."
           schema:
             type: string
         - name: to
           in: query
           required: false
-          description: "Window end, in the same formats and range as `from`. Default: now. An empty, unparseable or out-of-range value returns 400 (`invalid time`)."
+          description: "Window end, in the same formats and range as `from`. Floored to the whole minute. Default: now, at the time of the read; a held answer's read can be up to 120 seconds old. An empty, unparseable or out-of-range value returns 400 (`invalid time`)."
           schema:
             type: string
       responses:
@@ -585,6 +591,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceBusy"
   "/validator/{id}/delegators":
     get:
       operationId: getValidatorDelegators
@@ -749,6 +757,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceBusy"
   "/validator/{id}/logo":
     get:
       operationId: getValidatorLogo
@@ -819,6 +829,8 @@ paths:
           "$ref": "#/components/responses/TooManyRequests"
         "500":
           "$ref": "#/components/responses/InternalError"
+        "503":
+          "$ref": "#/components/responses/ServiceBusy"
   "/network/decentralization":
     get:
       operationId: getNetworkDecentralization
@@ -1152,7 +1164,7 @@ paths:
       tags:
         - health
       summary: "Data freshness"
-      description: "Freshness verdict of the indexer that feeds every reading: `ok`, `degraded` or `down`, with ages in milliseconds measured at `time`. The verdict is in the body with HTTP 200, also when degraded or down.\n\nCache: `no-store`. Rate class standard: 300 requests per minute."
+      description: "Freshness verdict of the indexer that feeds every reading: `ok`, `degraded` or `down`, with ages in milliseconds measured at `time`. The database is read at most every 15 seconds; the ages are computed for each response. The verdict is in the body with HTTP 200, also when degraded or down.\n\nCache: `no-store`. Rate class standard: 300 requests per minute."
       responses:
         "200":
           description: "The freshness verdict."
@@ -3116,11 +3128,11 @@ components:
             - "1w"
         from:
           type: string
-          description: "Start of the window used (UTC), after defaults and the 90-day limit for day and week buckets."
+          description: "Start of the window used (UTC), after defaults, the minute floor and the 90-day limit for day and week buckets."
           format: date-time
         to:
           type: string
-          description: "End of the window used (UTC)."
+          description: "End of the window used (UTC): an explicit `to` floored to the minute, or the time of the read."
           format: date-time
         points:
           type: array
@@ -3731,7 +3743,7 @@ components:
             - warming
             - busy
             - rpc-failed
-          description: "`warming`: the first reading for this validator is still running; it keeps running, and a retry is answered from it. `busy`: too many readings are queued, so none was started. `rpc-failed`: the chain reads failed."
+          description: "`warming`: the first reading for this validator is still running; it keeps running, and a retry is answered from it. `busy`: too many readings are queued, so none was started; or the database cancelled the check that this validator exists, because it ran too long. `rpc-failed`: the chain reads failed."
         retryAfterSec:
           type: integer
           minimum: 1
@@ -3764,7 +3776,7 @@ components:
           type: string
           enum:
             - building
-          description: "`building`: the first score set since the service started is still being computed. The computation keeps running, and a retry is answered from it."
+          description: "`building`: the first score set since the service started is still being computed. The computation keeps running, and a retry is answered from it. Or the last attempt to compute it failed; then `retryAfterSec` is the time left until the next attempt, which the first request after that time starts."
         retryAfterSec:
           type: integer
           minimum: 1
@@ -3796,7 +3808,7 @@ components:
           type: string
           enum:
             - building
-          description: "`building`: the first score set since the service started is still being computed. The computation keeps running, and a retry is answered from it."
+          description: "`building`: the first score set since the service started is still being computed. The computation keeps running, and a retry is answered from it. Or the last attempt to compute it failed; then `retryAfterSec` is the time left until the next attempt, which the first request after that time starts."
         retryAfterSec:
           type: integer
           minimum: 1
@@ -3805,6 +3817,29 @@ components:
           allOf:
             - "$ref": "#/components/schemas/NetworkName"
           description: "Network of the request."
+        time:
+          "$ref": "#/components/schemas/ResponseTime"
+    ServiceBusy:
+      type: object
+      description: "Error body of a 503 `busy`: the service was already reading as much data as it allows at once, with a full queue behind it, so this request was not started; or its read was started and did not finish in time. Retry after `retryAfterSec` seconds; the `Retry-After` header carries the same number."
+      required:
+        - error
+        - reason
+        - retryAfterSec
+        - time
+      properties:
+        error:
+          type: string
+          const: "service busy"
+        reason:
+          type: string
+          enum:
+            - busy
+          description: "`busy`: too many reads were running and waiting, so this one was not started; or it was started and did not finish in time."
+        retryAfterSec:
+          type: integer
+          minimum: 1
+          description: "Seconds to wait before retrying. A hint, not a promise."
         time:
           "$ref": "#/components/schemas/ResponseTime"
   parameters:
@@ -3965,3 +4000,20 @@ components:
         "application/json":
           schema:
             "$ref": "#/components/schemas/DecentralizationUnavailable"
+    ServiceBusy:
+      description: "The data cannot be read right now: every slot for reading it is taken, or the read did not finish in time and may still be running. Wait `Retry-After` seconds."
+      headers:
+        Retry-After:
+          "$ref": "#/components/headers/Retry-After"
+        RateLimit-Limit:
+          "$ref": "#/components/headers/RateLimit-Limit"
+        RateLimit-Remaining:
+          "$ref": "#/components/headers/RateLimit-Remaining"
+        RateLimit-Reset:
+          "$ref": "#/components/headers/RateLimit-Reset"
+        Cache-Control:
+          "$ref": "#/components/headers/Cache-Control"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/ServiceBusy"

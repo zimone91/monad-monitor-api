@@ -5,12 +5,24 @@ The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
-The API has served these changes since 2026-11-08, with `info.version` still `1.0.0-beta.3`. The next release names a new version.
+## [1.0.0-beta.4] - 2026-11-19
+
+The API has served this version since 2026-11-16, and the two logo additions since 2026-11-08, when `info.version` was still `1.0.0-beta.3`.
 
 ### Added
 
 - `GET /validator/{id}/logo?size=128`: a PNG thumbnail of the logo, at most 128 pixels on each side, cropped to the center and never enlarged. When no thumbnail can be made from the logo, the response is the logo itself. Any other `size` answers `400 invalid size`.
 - Every `200` of `GET /validator/{id}/logo` carries an `ETag` of its bytes. A request whose `If-None-Match` names that tag gets `304` with no body.
+- `503 service busy` from `GET /validators`, `GET /validator/{id}`, `GET /validator/{id}/slots`, `GET /validator/{id}/series`, `GET /validator/{id}/events` and `GET /validator/{id}/logo`, with `reason: "busy"` and `Retry-After`: the service was already running as many reads as it allows, with a full queue behind them, or the read did not finish in time.
+
+### Changed
+
+- `GET /validators` reads its list at most every 30 seconds and serves it for up to 60 seconds after the read, so the list can be up to a minute older than `time`.
+- `GET /validator/{id}/series` holds its answers: one read serves every request with the same parameters for 60 seconds, and while a newer one is read it is served for up to 120 seconds.
+- An explicit `from` or `to` in `GET /validator/{id}/series` is floored to the whole minute, and the answer's `from` and `to` show the floored values. The default `to` is the time of the read.
+- `GET /health/indexer` reads the database at most every 15 seconds; the ages are computed for each response.
+- `503 score unavailable` and `503 decentralization unavailable` with `reason: "building"` also come when the last attempt to compute the first score set failed. `Retry-After` is then the time left until the next attempt, which the first request after that time starts.
+- `503 delegators unavailable` with `reason: "busy"` also comes when the database cancelled the check that the validator exists, because it ran too long.
 
 ## [1.0.0-beta.3] - 2026-11-05
 

@@ -26,6 +26,7 @@ The body is `{"error":"<reason>", …, "time":"…"}`.
 | 503 | `delegators unavailable` | `reason`, `retryAfterSec`, `network`, `validatorId` | `GET /validator/{id}/delegators`: no list to give right now; see below |
 | 503 | `score unavailable` | `reason`, `retryAfterSec`, `network`, `validatorId` | `GET /validator/{id}/score`: the service has started, and its first score set is not computed yet; see below |
 | 503 | `decentralization unavailable` | `reason`, `retryAfterSec`, `network` | `GET /network/decentralization`: the same cause as `score unavailable`; see below |
+| 503 | `service busy` | `reason`, `retryAfterSec` | `GET /validators`, `GET /validator/{id}` and its `/slots`, `/series`, `/events` and `/logo`: the data cannot be read right now; see below |
 
 ## `503` from `/delegators`
 
@@ -36,7 +37,7 @@ The `Retry-After` header and `retryAfterSec` in the body carry the same number o
 | `reason` | Meaning |
 |---|---|
 | `warming` | The first reading for this validator takes longer than 10 seconds. It keeps running and fills the cache, so a retry after the wait is answered from it. |
-| `busy` | Too many readings are queued, so this one was not started. |
+| `busy` | Too many readings are queued, so this one was not started; or the database cancelled the check that this validator exists, because it ran too long. |
 | `rpc-failed` | The chain reads failed. |
 
 A `404` from this route means what it says: the indexer does not know the id, or the chain listed no such validator at the first reading. A list once held is not removed when a later reading finds no such validator.
@@ -50,6 +51,7 @@ curl -s -D - -o /dev/null 'https://api.zim.one/v1/validator/109/delegators?limit
 The score is computed for the whole set every 10 minutes, behind the set being served.
 Only in the first seconds after the service starts is there no set yet: until the first one is computed, both routes answer `503` with `reason: "building"`.
 The computation keeps running, so a retry after `Retry-After` seconds is answered from it.
+If the last attempt to compute that first set failed, both routes still answer `503` with `reason: "building"`, and `Retry-After` is the time left until the next attempt, which the first request after that time starts.
 
 These are not errors:
 
@@ -57,7 +59,17 @@ These are not errors:
 - Unknown values of `metric` and `bucket` fall back to the defaults (`production`, `1d`).
 - `limit` and `epochs` are clamped: `limit` to 1 to 50 for delegators and 1 to 200 for events, `epochs` to 1 to 200. A value that is not a number falls back to the default.
 - Zero is not read the same way everywhere: `limit=0` is 1 for `GET /validator/{id}/delegators` and the default 50 for `GET /validator/{id}/events`, and `epochs=0` is the default of about 7 days. Send the number you want.
-- Apart from `/delegators`, no route answers `503`: every data source `/v1` documents is configured, and the routes are served from them or not at all.
+- No route answers `503` because a data source is missing: every data source `/v1` documents is configured. The `503` answers are the ones in the table above.
+
+## `503 service busy`
+
+`GET /validators`, `GET /validator/{id}` and its `/slots`, `/series`, `/events` and `/logo` read their data on request.
+The service runs only so many of these reads at once, with a short queue behind them.
+When the queue is full, a new request is not started: it gets `503 service busy` with `reason: "busy"`.
+The same answer comes when a read was started and did not finish in time; it may still be running.
+The `Retry-After` header and `retryAfterSec` in the body carry the same number of seconds: a hint, not a promise.
+Wait that long, then retry.
+If `503` repeats, double the wait each time and add random jitter, as for `429`.
 
 ## Unknown path
 
